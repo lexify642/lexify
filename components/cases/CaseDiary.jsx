@@ -1,33 +1,36 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { initialCases, TODAY } from "@/data/cases";
-import { displayDate, toneForStage } from "./utils";
+import { useEffect, useMemo, useState } from "react";
+import { TODAY } from "@/data/cases";
+import { useCases } from "./CasesContext";
+import { useCaseActions } from "./useCaseActions";
+import { displayDate } from "./utils";
 import CaseDrawer from "./CaseDrawer";
 import CaseModal from "./CaseModal";
-
-function getInitialValues(type, index, current) {
-  if (index === null || index === undefined) return null;
-  if (type === "client") return current?.client ?? null;
-  if (type === "note") return { date: "", text: current.notes[index][1] };
-  if (type === "task")
-    return { due: current.tasks[index][0], text: current.tasks[index][1], priority: current.tasks[index][2] };
-  if (type === "document") return { name: current.docs[index] };
-  if (type === "case") return current;
-  return null;
-}
+import EditCaseModal from "./EditCaseModal";
 
 export default function CaseDiary() {
-  const [cases, setCases] = useState(initialCases);
+  const { cases } = useCases();
   const [selectedDate, setSelectedDate] = useState("");
   const [search, setSearch] = useState("");
   const [selectedCaseNo, setSelectedCaseNo] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [modal, setModal] = useState(null);
-  const [toast, setToast] = useState({ message: "", visible: false });
-  const toastTimer = useRef(null);
 
-  const current = useMemo(() => cases.find((c) => c.no === selectedCaseNo) ?? null, [cases, selectedCaseNo]);
+  const {
+    current,
+    modal,
+    openModal,
+    closeModal,
+    initialValues,
+    handleModalSubmit,
+    handleDelete,
+    handleViewDocument,
+    editCaseOpen,
+    openEditCase,
+    closeEditCase,
+    handleSaveCaseDetails,
+    toast,
+  } = useCaseActions(selectedCaseNo);
 
   const filteredCases = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -41,19 +44,14 @@ export default function CaseDiary() {
   useEffect(() => {
     function handleKeydown(event) {
       if (event.key === "Escape") {
-        setModal(null);
+        closeModal();
         setDrawerOpen(false);
       }
     }
     document.addEventListener("keydown", handleKeydown);
     return () => document.removeEventListener("keydown", handleKeydown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function showToast(message) {
-    setToast({ message, visible: true });
-    clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast((t) => ({ ...t, visible: false })), 2500);
-  }
 
   function openDrawer(no) {
     setSelectedCaseNo(no);
@@ -64,14 +62,6 @@ export default function CaseDiary() {
     setDrawerOpen(false);
   }
 
-  function openModal(type, index = null) {
-    setModal({ type, index });
-  }
-
-  function closeModal() {
-    setModal(null);
-  }
-
   function handleDateNav(kind) {
     if (kind === "today") {
       setSelectedDate(TODAY);
@@ -80,103 +70,6 @@ export default function CaseDiary() {
     const base = selectedDate ? new Date(`${selectedDate}T00:00:00`) : new Date(`${TODAY}T00:00:00`);
     base.setDate(base.getDate() + (kind === "previous" ? -1 : 1));
     setSelectedDate(base.toISOString().slice(0, 10));
-  }
-
-  function handleModalSubmit(data) {
-    const { type, index } = modal;
-
-    if (type === "case" && index === null) {
-      setCases((prev) => [
-        ...prev,
-        {
-          no: String(prev.length + 1).padStart(2, "0"),
-          ...data,
-          tone: toneForStage(data.stage),
-          activity: "Case created",
-          history: [],
-          notes: [],
-          tasks: [],
-          docs: [],
-          client: null,
-        },
-      ]);
-      closeModal();
-      showToast("Changes saved.");
-      return;
-    }
-
-    setCases((prev) =>
-      prev.map((c) => {
-        if (c.no !== selectedCaseNo) return c;
-        switch (type) {
-          case "case":
-            return { ...c, ...data, tone: toneForStage(data.stage), activity: "Case details updated" };
-          case "client":
-            return { ...c, client: data };
-          case "note": {
-            const entry = [data.date ? displayDate(data.date) : "Today", data.text];
-            return {
-              ...c,
-              notes: index === null ? [entry, ...c.notes] : c.notes.map((n, i) => (i === index ? entry : n)),
-            };
-          }
-          case "task": {
-            const entry = [data.due, data.text, data.priority];
-            return {
-              ...c,
-              tasks: index === null ? [...c.tasks, entry] : c.tasks.map((t, i) => (i === index ? entry : t)),
-            };
-          }
-          case "document": {
-            const name = data.file?.name || data.name;
-            return {
-              ...c,
-              docs: index === null ? [...c.docs, name] : c.docs.map((d, i) => (i === index ? name : d)),
-            };
-          }
-          default:
-            return c;
-        }
-      })
-    );
-    closeModal();
-    showToast("Changes saved.");
-  }
-
-  function handleDelete(type, index) {
-    if (!window.confirm(`Delete this ${type}?`)) return;
-    if (type === "case") {
-      setCases((prev) => prev.filter((c) => c.no !== selectedCaseNo));
-      setDrawerOpen(false);
-      setSelectedCaseNo(null);
-    } else {
-      setCases((prev) =>
-        prev.map((c) => {
-          if (c.no !== selectedCaseNo) return c;
-          if (type === "client") return { ...c, client: null };
-          if (type === "note") return { ...c, notes: c.notes.filter((_, i) => i !== index) };
-          if (type === "task") return { ...c, tasks: c.tasks.filter((_, i) => i !== index) };
-          if (type === "document") return { ...c, docs: c.docs.filter((_, i) => i !== index) };
-          return c;
-        })
-      );
-    }
-    showToast(`${type} deleted.`);
-  }
-
-  function handleRecordHearing() {
-    const date = window.prompt("Hearing date (for example, 22 Jul 2026):");
-    const outcome = date && window.prompt("What happened on this date?");
-    if (!outcome) return;
-    setCases((prev) =>
-      prev.map((c) =>
-        c.no === selectedCaseNo ? { ...c, history: [[date, "Hearing outcome", outcome], ...c.history] } : c
-      )
-    );
-  }
-
-  function handleViewDocument(name) {
-    window.alert(`Previewing ${name}\n\nIn a connected application, the selected file opens in the document viewer.`);
   }
 
   const summaryText = selectedDate
@@ -298,16 +191,13 @@ export default function CaseDiary() {
         onEdit={openModal}
         onDelete={handleDelete}
         onAdd={openModal}
-        onRecordHearing={handleRecordHearing}
         onViewDocument={handleViewDocument}
+        onEditCase={openEditCase}
       />
 
-      <CaseModal
-        modal={modal}
-        initialValues={modal ? getInitialValues(modal.type, modal.index, current) : null}
-        onClose={closeModal}
-        onSubmit={handleModalSubmit}
-      />
+      <CaseModal modal={modal} initialValues={initialValues} onClose={closeModal} onSubmit={handleModalSubmit} />
+
+      <EditCaseModal open={editCaseOpen} caseData={current} onClose={closeEditCase} onSave={handleSaveCaseDetails} />
 
       <div className={`toast${toast.visible ? " show" : ""}`} role="status">
         {toast.message}

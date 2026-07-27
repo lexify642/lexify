@@ -1,4 +1,5 @@
 import "./globals.css";
+import { CasesProvider } from "@/components/cases/CasesContext";
 
 export const metadata = {
   title: "CASEFLOW",
@@ -8,7 +9,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        <CasesProvider>{children}</CasesProvider>
+      </body>
     </html>
   );
 }

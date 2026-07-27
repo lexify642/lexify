@@ -1,5 +1,20 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
+const STAGE_OPTIONS = [
+  "Institution",
+  "Notice Stage",
+  "Admission",
+  "Written Statement",
+  "Evidence",
+  "Cross Examination",
+  "Arguments",
+  "Final Hearing",
+  "Reply",
+  "Judgment",
+];
+
 const FORM_CONFIGS = {
   case: {
     fields: [
@@ -26,14 +41,27 @@ const FORM_CONFIGS = {
   note: {
     fields: [
       { name: "date", label: "Hearing date", type: "date", required: true },
-      { name: "text", label: "Historical note", required: true, full: true, type: "textarea", rows: 5 },
+      { name: "text", label: "Note", required: true, full: true, type: "textarea", rows: 5 },
+      { name: "isReminder", label: "Mark as Reminder", type: "checkbox", full: true },
+      { name: "dueDate", label: "Due Date", type: "date", dependsOn: "isReminder" },
     ],
   },
-  task: {
+  previousDate: {
     fields: [
-      { name: "due", label: "Due date/time", required: true },
-      { name: "priority", label: "Priority", type: "select", options: ["High", "Medium"] },
-      { name: "text", label: "Task", required: true, full: true },
+      { name: "date", label: "Date", type: "date", required: true },
+      { name: "court", label: "Court", required: true },
+      { name: "stage", label: "Stage of Proceedings", type: "select", options: STAGE_OPTIONS },
+      { name: "purpose", label: "Purpose of Hearing", required: true, full: true },
+      { name: "outcome", label: "Outcome / Proceedings", required: true, full: true },
+      { name: "advocate", label: "Advocate / User", required: true },
+      { name: "fullNotes", label: "Complete Notes", full: true, type: "textarea", rows: 5 },
+    ],
+  },
+  nextDate: {
+    fields: [
+      { name: "outcome", label: "Outcome / Proceedings (this hearing)", required: true, full: true, type: "textarea", rows: 4 },
+      { name: "nextDate", label: "Next Hearing Date", type: "date", required: true },
+      { name: "nextTime", label: "Next Hearing Time", required: true, placeholder: "10:30 AM" },
     ],
   },
   document: {
@@ -52,10 +80,22 @@ const FORM_CONFIGS = {
 };
 
 export default function CaseModal({ modal, initialValues, onClose, onSubmit }) {
+  const config = modal ? FORM_CONFIGS[modal.type] : null;
+  const [watched, setWatched] = useState({});
+
+  useEffect(() => {
+    if (!config) return;
+    const w = {};
+    config.fields.forEach((field) => {
+      if (field.type === "checkbox") w[field.name] = !!initialValues?.[field.name];
+    });
+    setWatched(w);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modal?.type, modal?.index]);
+
   if (!modal) return null;
   const { type, index } = modal;
   const isEdit = index !== null && index !== undefined;
-  const config = FORM_CONFIGS[type];
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -67,6 +107,8 @@ export default function CaseModal({ modal, initialValues, onClose, onSubmit }) {
       if (field.type === "file") {
         const file = formData.get(field.name);
         data[field.name] = file && file.size > 0 ? file : null;
+      } else if (field.type === "checkbox") {
+        data[field.name] = formData.get(field.name) === "on";
       } else {
         data[field.name] = formData.get(field.name) ?? "";
       }
@@ -92,11 +134,30 @@ export default function CaseModal({ modal, initialValues, onClose, onSubmit }) {
           <div className="form-grid">
             {config.fields.map((field) => {
               const defaultValue = initialValues?.[field.name];
+              const disabled = field.dependsOn ? !watched[field.dependsOn] : false;
+
+              if (field.type === "checkbox") {
+                return (
+                  <label key={field.name} className={`toggle-field${field.full ? " full" : ""}`}>
+                    <span className="switch">
+                      <input
+                        name={field.name}
+                        type="checkbox"
+                        defaultChecked={!!defaultValue}
+                        onChange={(e) => setWatched((prev) => ({ ...prev, [field.name]: e.target.checked }))}
+                      />
+                      <span className="switch-track" />
+                    </span>
+                    {field.label}
+                  </label>
+                );
+              }
+
               return (
-                <label key={field.name} className={`form-field${field.full ? " full" : ""}`}>
+                <label key={field.name} className={`form-field${field.full ? " full" : ""}${disabled ? " disabled" : ""}`}>
                   {field.label}
                   {field.type === "select" ? (
-                    <select name={field.name} defaultValue={defaultValue ?? field.options[0]}>
+                    <select name={field.name} defaultValue={defaultValue ?? field.options[0]} disabled={disabled}>
                       {field.options.map((option) => (
                         <option key={option}>{option}</option>
                       ))}
@@ -107,6 +168,7 @@ export default function CaseModal({ modal, initialValues, onClose, onSubmit }) {
                       required={field.required}
                       rows={field.rows}
                       defaultValue={defaultValue ?? ""}
+                      disabled={disabled}
                     />
                   ) : field.type === "file" ? (
                     <>
@@ -117,10 +179,11 @@ export default function CaseModal({ modal, initialValues, onClose, onSubmit }) {
                     <input
                       name={field.name}
                       type={field.type || "text"}
-                      required={field.required}
+                      required={field.required && !disabled}
                       pattern={field.pattern}
                       placeholder={field.placeholder}
                       defaultValue={defaultValue ?? ""}
+                      disabled={disabled}
                     />
                   )}
                 </label>

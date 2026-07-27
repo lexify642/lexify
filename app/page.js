@@ -1,6 +1,12 @@
+"use client";
+
+import { useMemo } from "react";
 import Link from "next/link";
 import AppShell from "@/components/layout/AppShell";
 import Topbar from "@/components/layout/Topbar";
+import { useCases } from "@/components/cases/CasesContext";
+import { displayDate } from "@/components/cases/utils";
+import { TODAY } from "@/data/cases";
 
 const STATS = [
   { icon: "▤", tone: "", number: 300, label: "Open Cases" },
@@ -36,26 +42,12 @@ const HEARINGS = [
   },
 ];
 
-const DEADLINES = [
-  {
-    icon: "!",
-    tone: "red",
-    title: "Submit written statement",
-    meta: "ABC Corp. vs. XYZ Ltd. · Due tomorrow",
-  },
-  {
-    icon: "◷",
-    tone: "orange",
-    title: "Review counter affidavit",
-    meta: "Mehta Industries · Due in 3 days",
-  },
-  {
-    icon: "✓",
-    tone: "green",
-    title: "Client document collection",
-    meta: "R. Khanna matter · Due in 5 days",
-  },
-];
+function reminderTone(dueDate) {
+  const days = (new Date(`${dueDate}T00:00:00`) - new Date(`${TODAY}T00:00:00`)) / 86400000;
+  if (days <= 1) return { icon: "!", tone: "red" };
+  if (days <= 4) return { icon: "◷", tone: "orange" };
+  return { icon: "✓", tone: "green" };
+}
 
 const RECENT_CASES = [
   {
@@ -77,6 +69,26 @@ const RECENT_CASES = [
 ];
 
 export default function DashboardPage() {
+  const { cases, setCases } = useCases();
+
+  const reminders = useMemo(() => {
+    return cases
+      .flatMap((c) =>
+        c.notes
+          .filter((n) => n.isReminder && !n.completed && n.dueDate)
+          .map((n) => ({ caseNo: c.no, parties: c.parties, note: n }))
+      )
+      .sort((a, b) => a.note.dueDate.localeCompare(b.note.dueDate));
+  }, [cases]);
+
+  function markReminderDone(caseNo, noteId) {
+    setCases((prev) =>
+      prev.map((c) =>
+        c.no !== caseNo ? c : { ...c, notes: c.notes.map((n) => (n.id === noteId ? { ...n, completed: true } : n)) }
+      )
+    );
+  }
+
   return (
     <AppShell>
       <Topbar searchAriaLabel="Global search">
@@ -150,20 +162,32 @@ export default function DashboardPage() {
 
           <section className="card">
             <div className="section-head">
-              <h2 className="section-title">Approaching Deadlines</h2>
+              <h2 className="section-title">Reminders</h2>
               <Link className="link" href="/cases">
                 View all →
               </Link>
             </div>
-            {DEADLINES.map((deadline) => (
-              <div className="list-item" key={deadline.title}>
-                <div className={`stat-icon ${deadline.tone}`}>{deadline.icon}</div>
-                <div className="item-main">
-                  <strong>{deadline.title}</strong>
-                  <span>{deadline.meta}</span>
-                </div>
-              </div>
-            ))}
+            {reminders.length ? (
+              reminders.map(({ caseNo, parties, note }) => {
+                const { icon, tone } = reminderTone(note.dueDate);
+                return (
+                  <div className="list-item" key={note.id}>
+                    <div className={`stat-icon ${tone}`}>{icon}</div>
+                    <div className="item-main">
+                      <strong>{note.text}</strong>
+                      <span>
+                        {parties} · Due {displayDate(note.dueDate)}
+                      </span>
+                    </div>
+                    <button type="button" className="link" onClick={() => markReminderDone(caseNo, note.id)}>
+                      Mark done
+                    </button>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="empty-inline">No reminders due. Mark a note as a reminder from any case to see it here.</div>
+            )}
           </section>
 
           <section className="card" style={{ gridColumn: "1/-1" }}>

@@ -157,6 +157,20 @@ a { color:inherit; text-decoration:none; }
 
 @media (max-width:1050px) { .calculator-estimate-grid,.analytics-grid { grid-template-columns:1fr; } .field-row { grid-template-columns:1fr; } }
 
+/* Case Analytics: Previous Dates, Notes reminder toggle, Case Details button */
+.btn-block { width:100%; justify-content:center; margin-top:14px; }
+.form-field.disabled input,.form-field.disabled select,.form-field.disabled textarea { background:#f5f7fa; color:#9aa8bd; }
+.previous-date-list { display:flex; flex-direction:column; gap:10px; }
+.previous-date-card { background:#fff; border:1px solid var(--line); border-radius:8px; padding:12px 13px; }
+.previous-date-head { display:flex; justify-content:space-between; align-items:center; gap:10px; width:100%; border:0; background:transparent; padding:0 0 6px; text-align:left; }
+.previous-date-head b { color:#233955; font-size:13px; }
+.previous-date-expand { color:#7191ca; font-size:13px; }
+.previous-date-meta { color:#718198; font-size:12px; margin:3px 0; line-height:1.5; }
+.previous-date-meta b { color:#4c5e76; }
+.previous-date-full-notes { margin-top:8px; padding-top:8px; border-top:1px dashed var(--line); color:#576b85; font-size:12px; line-height:1.55; }
+.case-modal.wide { width:min(880px,100%); }
+.field.full { grid-column:1/-1; }
+
 /* Printing/PDF export: only the document content should appear, never app chrome, tabs, buttons, or working-panel annotations (risk notes, guidance, presets etc). */
 @media print {
   .sidebar, .topbar, .heading-row, .workspace-tabs, .header-actions { display:none !important; }
