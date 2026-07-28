@@ -40,6 +40,3 @@ yarn-error.log*
 
 # editor
 .idea
-
-# embedded local Postgres data directory (Cases module dev database)
-.pgdata

@@ -5,14 +5,15 @@
 // - Streams the parquet file in row windows (never loads the whole file into
 //   memory) so this scales from today's 3,640-row sample to a future
 //   tens-of-millions-row dataset without changes.
-// - `createMany({ skipDuplicates: true })` against the
+// - An upsert with `ignoreDuplicates: true` against the
 //   `(datasetSource, parserRecordId)` unique constraint makes re-running the
 //   importer on the same file (or overlapping files) safe and idempotent.
 // - `--dataset-source` tags every row from this run with a fixed source (for
 //   future datasets that don't carry their own `dataset_source` column);
 //   otherwise each row's own `dataset_source` column is used.
+import { randomUUID } from "node:crypto";
 import { asyncBufferFromFile, parquetMetadataAsync, parquetReadObjects } from "hyparquet";
-import { prisma } from "../lib/db.js";
+import { supabase } from "../lib/supabase.js";
 
 const COLUMNS = [
   "id",
@@ -93,6 +94,12 @@ function parseJsonSafe(value) {
 
 function mapRow(row, datasetSourceOverride) {
   return {
+    // Prisma used to generate these two columns itself (id via its client-side
+    // cuid() default, updatedAt via @updatedAt) — the migration never gave
+    // either a Postgres-level default, so now that inserts go straight through
+    // Supabase's REST API, this script has to set them explicitly.
+    id: randomUUID(),
+    updatedAt: new Date(),
     sourceId: toInt(row.id),
     datasetSource: datasetSourceOverride || row.dataset_source || "unknown",
     caseMetadataId: row.case_metadata_id ?? null,
@@ -163,19 +170,23 @@ async function main() {
     const rows = await parquetReadObjects({ file, columns: COLUMNS, rowStart, rowEnd });
     const data = rows.map((row) => mapRow(row, datasetSourceOverride));
 
-    const result = await prisma.legalCase.createMany({ data, skipDuplicates: true });
-    imported += result.count;
+    const { data: inserted, error } = await supabase
+      .from("legal_cases")
+      .upsert(data, { onConflict: "datasetSource,parserRecordId", ignoreDuplicates: true })
+      .select("id");
+    if (error) throw error;
+
+    const count = inserted?.length ?? 0;
+    imported += count;
     processed += rows.length;
-    console.log(`  rows ${rowStart}-${rowEnd}: +${result.count} new (${processed}/${totalRows} processed)`);
+    console.log(`  rows ${rowStart}-${rowEnd}: +${count} new (${processed}/${totalRows} processed)`);
   }
 
   const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
   console.log(`\nDone in ${seconds}s. ${imported} new rows imported, ${processed - imported} duplicates skipped.`);
-  await prisma.$disconnect();
 }
 
-main().catch(async (err) => {
+main().catch((err) => {
   console.error("Import failed:", err);
-  await prisma.$disconnect();
   process.exit(1);
 });
