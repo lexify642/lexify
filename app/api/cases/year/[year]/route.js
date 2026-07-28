@@ -1,4 +1,4 @@
-import { jsonError, jsonOk } from "@/lib/api-response";
+import { jsonError, jsonErrorFromException, jsonOk } from "@/lib/api-response";
 import { searchCases } from "@/lib/cases/query";
 import { paginationOnlySchema, yearParamSchema } from "@/lib/validation";
 
@@ -24,6 +24,6 @@ export async function GET(request, { params }) {
     return jsonOk(rows, { total, page, pageSize, totalPages });
   } catch (err) {
     console.error("[api/cases/year/:year]", err);
-    return jsonError("Something went wrong while loading cases for this year.", 500);
+    return jsonErrorFromException(err, "Something went wrong while loading cases for this year.");
   }
 }

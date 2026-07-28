@@ -1,4 +1,4 @@
-import { jsonError, jsonOk } from "@/lib/api-response";
+import { jsonError, jsonErrorFromException, jsonOk } from "@/lib/api-response";
 import { getCaseById } from "@/lib/cases/query";
 import { idParamSchema } from "@/lib/validation";
 
@@ -17,6 +17,6 @@ export async function GET(_request, { params }) {
     return jsonOk(legalCase);
   } catch (err) {
     console.error("[api/cases/:id]", err);
-    return jsonError("Something went wrong while loading this case.", 500);
+    return jsonErrorFromException(err, "Something went wrong while loading this case.");
   }
 }

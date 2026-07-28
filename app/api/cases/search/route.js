@@ -1,4 +1,4 @@
-import { jsonError, jsonOk } from "@/lib/api-response";
+import { jsonError, jsonErrorFromException, jsonOk } from "@/lib/api-response";
 import { searchCases } from "@/lib/cases/query";
 import { searchParamsSchema } from "@/lib/validation";
 
@@ -14,6 +14,6 @@ export async function GET(request) {
     return jsonOk(rows, { total, page, pageSize, totalPages });
   } catch (err) {
     console.error("[api/cases/search]", err);
-    return jsonError("Something went wrong while searching cases.", 500);
+    return jsonErrorFromException(err, "Something went wrong while searching cases.");
   }
 }
