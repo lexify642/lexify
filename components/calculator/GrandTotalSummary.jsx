@@ -16,7 +16,7 @@ const TILES = [
 export default function GrandTotalSummary({ totals, input, onToggle }) {
   return (
     <section className="card">
-      <h2 className="panel-title">3. Estimated Total Litigation Cost</h2>
+      <h2 className="panel-title">2. Estimated Total Litigation Cost</h2>
       <div className="cost-summary-grid">
         <div className="cost-tile-grid">
           {TILES.map((tile) => (

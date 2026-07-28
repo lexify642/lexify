@@ -2,27 +2,22 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { initialCases } from "@/data/cases";
-import AiInsightsPanel from "./AiInsightsPanel";
 import AlertsBanner from "./AlertsBanner";
 import AuditLogPanel from "./AuditLogPanel";
 import { inferInputsFromCase } from "./caseMapping";
 import CalculationExplanationPanel from "./CalculationExplanationPanel";
 import CaseSelectorBar from "./CaseSelectorBar";
-import CostBreakdownTable from "./CostBreakdownTable";
 import { calculateEstimate, DEFAULT_INPUT } from "./costEngine";
 import { buildCsvBlob, buildMailtoHref, buildSummaryText, buildWhatsAppHref, downloadBlob } from "./exporters";
 import GrandTotalSummary from "./GrandTotalSummary";
 import InputDetailsCard from "./InputDetailsCard";
-import StageTimeline from "./StageTimeline";
 import StatutoryReferencesPanel from "./StatutoryReferencesPanel";
 import { appendAuditEvent, getAuditLog, getEstimateHistory, saveEstimateSnapshot } from "./storage";
 import VersionHistoryPanel from "./VersionHistoryPanel";
-import AnalyticsDashboard from "./analytics/AnalyticsDashboard";
+import ViewCalculationModal from "./ViewCalculationModal";
 
 const TABS = [
   { key: "estimate", label: "Estimate" },
-  { key: "timeline", label: "Timeline" },
-  { key: "analytics", label: "Analytics" },
   { key: "history", label: "History & Audit" },
 ];
 
@@ -34,6 +29,7 @@ export default function FeeCalculator() {
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [history, setHistory] = useState([]);
   const [auditLog, setAuditLog] = useState([]);
+  const [viewingEntry, setViewingEntry] = useState(null);
   const [toast, setToast] = useState({ message: "", visible: false });
   const toastTimer = useRef(null);
 
@@ -60,6 +56,24 @@ export default function FeeCalculator() {
         event,
         stateCourt: `${inputs.state} · ${inputs.court}`,
         rulesVersion: result.meta.rulesVersion,
+        snapshot: {
+          estimateId: `EST-${Date.now()}`,
+          state: inputs.state,
+          court: inputs.court,
+          rulesVersion: result.meta.rulesVersion,
+          lastModified: null,
+          linkedCase: linkedCase
+            ? {
+                title: linkedCase.parties,
+                number: linkedCase.number,
+                type: linkedCase.filing,
+                court: `${linkedCase.court}, ${linkedCase.city}`,
+              }
+            : null,
+          inputs,
+          totals: result.totals,
+          statutoryReferences: result.statutoryReferences,
+        },
       })
     );
   }
@@ -207,29 +221,21 @@ export default function FeeCalculator() {
         <div className="calculator-estimate-grid">
           <div className="calculator-estimate-main">
             <InputDetailsCard values={inputs} onChange={handleChange} onCalculate={handleCalculate} onReset={handleReset} />
-            <CostBreakdownTable rows={result.rows} alerts={result.alerts} />
             <GrandTotalSummary totals={result.totals} input={inputs} onToggle={handleChange} />
           </div>
           <div className="calculator-estimate-side">
             <StatutoryReferencesPanel references={result.statutoryReferences} />
             <CalculationExplanationPanel rows={result.rows} />
-            <AiInsightsPanel insights={result.insights} />
           </div>
         </div>
       </section>
 
-      <section className={`library-view${activeTab === "timeline" ? " active" : ""}`}>
-        <StageTimeline timeline={result.timeline} />
-      </section>
-
-      <section className={`library-view${activeTab === "analytics" ? " active" : ""}`}>
-        <AnalyticsDashboard result={result} history={history} onActualExpensesChange={(v) => handleChange("actualExpensesSoFar", v)} />
-      </section>
-
       <section className={`library-view${activeTab === "history" ? " active" : ""}`}>
         <VersionHistoryPanel history={history} onRestore={handleRestore} />
-        <AuditLogPanel entries={auditLog} />
+        <AuditLogPanel entries={auditLog} onViewCalculation={setViewingEntry} />
       </section>
+
+      <ViewCalculationModal entry={viewingEntry} onClose={() => setViewingEntry(null)} />
 
       <div className={`toast${toast.visible ? " show" : ""}`} role="status">
         {toast.message}

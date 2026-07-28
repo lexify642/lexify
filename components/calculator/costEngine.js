@@ -46,7 +46,6 @@ export const DEFAULT_INPUT = {
   counterClaimValue: 0,
   interestClaimed: 0,
   previousCourtFeePaid: 0,
-  actualExpensesSoFar: 0,
   professionalFeesEnabled: false,
   gstEnabled: false,
 };
@@ -117,7 +116,6 @@ function normalizeInput(raw) {
     counterClaimValue: num(input.counterClaimValue),
     interestClaimed: num(input.interestClaimed),
     previousCourtFeePaid: num(input.previousCourtFeePaid),
-    actualExpensesSoFar: num(input.actualExpensesSoFar),
   };
 }
 

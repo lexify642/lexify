@@ -8,6 +8,7 @@ const WORKSPACE_ITEMS = [
   { key: "cases", href: "/cases", icon: "▤", label: "Cases" },
   { key: "task", href: "/cases", icon: "✓", label: "Task" },
   { key: "calculator", href: "/calculator", icon: "₹", label: "Fee Calculator" },
+  { key: "case-research", href: "/case-research", icon: "⚖", label: "Case Research" },
   { key: "analytics", href: "/#analytics", icon: "◔", label: "Analytics" },
   { key: "research", href: "/lexi-ai", icon: "⌕", label: "Research" },
   { key: "clauses", href: "/draft#clauses", icon: "§", label: "Clause Bank" },
@@ -24,6 +25,7 @@ function activeKeyForPath(pathname) {
   if (pathname === "/cases") return "cases";
   if (pathname === "/lexi-ai") return "research";
   if (pathname === "/calculator") return "calculator";
+  if (pathname.startsWith("/case-research")) return "case-research";
   if (pathname === "/admin") return "admin";
   return null;
 }

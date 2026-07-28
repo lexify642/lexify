@@ -2,12 +2,13 @@
 
 import { formatDateTime } from "./format";
 
-export default function AuditLogPanel({ entries }) {
+export default function AuditLogPanel({ entries, onViewCalculation }) {
   return (
     <section className="card">
       <h2 className="panel-title">Security &amp; Audit Trail</h2>
       <p className="hint" style={{ marginBottom: 16 }}>
-        Local demo log recorded in this browser — not a substitute for a real audit/security backend.
+        Local demo log recorded in this browser — not a substitute for a real audit/security backend. Click a row to view
+        the calculation exactly as it existed at that time.
       </p>
       {entries.length ? (
         <div className="table-wrap">
@@ -23,7 +24,13 @@ export default function AuditLogPanel({ entries }) {
             </thead>
             <tbody>
               {entries.map((e) => (
-                <tr key={e.id}>
+                <tr
+                  className="case-row"
+                  tabIndex={0}
+                  key={e.id}
+                  onClick={() => e.snapshot && onViewCalculation(e)}
+                  title={e.snapshot ? "View calculation" : "No snapshot saved for this entry"}
+                >
                   <td>{formatDateTime(e.timestamp)}</td>
                   <td>{e.user}</td>
                   <td>{e.event}</td>
