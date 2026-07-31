@@ -3,8 +3,18 @@
 import { useState } from "react";
 import Link from "next/link";
 import { displayDate } from "./utils";
+import { toneForTaskStatus } from "@/data/team";
 
-export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onViewDocument, onEditCase, showCaseDetailsLink = true }) {
+export default function CaseOverview({
+  caseData,
+  onAdd,
+  onEdit,
+  onDelete,
+  onViewDocument,
+  onEditCase,
+  onAdvanceTaskStatus,
+  showCaseDetailsLink = true,
+}) {
   const [expandedId, setExpandedId] = useState(null);
 
   if (!caseData) return null;
@@ -141,6 +151,46 @@ export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onView
           ))
         ) : (
           <div className="empty-inline">No notes.</div>
+        )}
+      </section>
+
+      <section className="drawer-section">
+        <div className="drawer-section-title">
+          <h3>Tasks &amp; Delegation</h3>
+          <button type="button" className="link" onClick={() => onAdd("task")}>
+            + Assign task
+          </button>
+        </div>
+        {caseData.tasks.length ? (
+          caseData.tasks.map((task, i) => (
+            <div className="case-task" key={task.id}>
+              <button
+                type="button"
+                className="task-check"
+                title="Click to advance status"
+                onClick={() => onAdvanceTaskStatus(i)}
+              >
+                {task.status === "Done" ? "✓" : ""}
+              </button>
+              <div>
+                <b>{task.title}</b>
+                <small>
+                  {task.assignee} · {task.assigneeRole} · Due {displayDate(task.dueDate)}
+                </small>
+              </div>
+              <span className={`badge ${toneForTaskStatus(task.status)}`}>{task.status}</span>
+              <span className="mini-actions">
+                <button type="button" onClick={() => onEdit("task", i)}>
+                  Edit
+                </button>
+                <button type="button" className="danger-action" onClick={() => onDelete("task", i)}>
+                  Delete
+                </button>
+              </span>
+            </div>
+          ))
+        ) : (
+          <div className="empty-inline">No tasks assigned yet.</div>
         )}
       </section>
 

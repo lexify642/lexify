@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { TEAM_MEMBERS, TASK_STATUSES } from "@/data/team";
+import { checkConflicts } from "./clientDirectory";
+import { useCases } from "./CasesContext";
+
+const ASSIGNEE_OPTIONS = TEAM_MEMBERS.map((m) => `${m.name} — ${m.role}`);
 
 const STAGE_OPTIONS = [
   "Institution",
@@ -64,6 +69,14 @@ const FORM_CONFIGS = {
       { name: "nextTime", label: "Next Hearing Time", required: true, placeholder: "10:30 AM" },
     ],
   },
+  task: {
+    fields: [
+      { name: "title", label: "Task", required: true, full: true },
+      { name: "assignee", label: "Assign To", type: "select", options: ASSIGNEE_OPTIONS },
+      { name: "dueDate", label: "Due Date", type: "date", required: true },
+      { name: "status", label: "Status", type: "select", options: TASK_STATUSES },
+    ],
+  },
   document: {
     fields: [
       { name: "name", label: "Document / draft name", required: true, full: true },
@@ -82,6 +95,9 @@ const FORM_CONFIGS = {
 export default function CaseModal({ modal, initialValues, onClose, onSubmit }) {
   const config = modal ? FORM_CONFIGS[modal.type] : null;
   const [watched, setWatched] = useState({});
+  const [partiesValue, setPartiesValue] = useState("");
+  const [conflictMatches, setConflictMatches] = useState([]);
+  const { cases } = useCases();
 
   useEffect(() => {
     if (!config) return;
@@ -90,8 +106,20 @@ export default function CaseModal({ modal, initialValues, onClose, onSubmit }) {
       if (field.type === "checkbox") w[field.name] = !!initialValues?.[field.name];
     });
     setWatched(w);
+    setPartiesValue(initialValues?.parties ?? "");
+    setConflictMatches([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modal?.type, modal?.index]);
+
+  // Quick conflict-of-interest check as the advocate types the new matter's
+  // parties — non-blocking, just an inline heads-up (see clientDirectory.js).
+  useEffect(() => {
+    if (modal?.type !== "case") return;
+    const timer = setTimeout(() => {
+      setConflictMatches(checkConflicts(partiesValue, cases));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [partiesValue, modal?.type, cases]);
 
   if (!modal) return null;
   const { type, index } = modal;
@@ -135,6 +163,33 @@ export default function CaseModal({ modal, initialValues, onClose, onSubmit }) {
             {config.fields.map((field) => {
               const defaultValue = initialValues?.[field.name];
               const disabled = field.dependsOn ? !watched[field.dependsOn] : false;
+              const isPartiesField = type === "case" && field.name === "parties";
+
+              if (isPartiesField) {
+                return (
+                  <label key={field.name} className={`form-field${field.full ? " full" : ""}`}>
+                    {field.label}
+                    <input
+                      name={field.name}
+                      required={field.required}
+                      value={partiesValue}
+                      onChange={(e) => setPartiesValue(e.target.value)}
+                    />
+                    {conflictMatches.length > 0 && (
+                      <div className="conflict-hint">
+                        ⚠ Possible conflict — matches {conflictMatches.length} existing record(s):
+                        <ul>
+                          {conflictMatches.slice(0, 3).map((m, i) => (
+                            <li key={i}>
+                              <b>{m.matchedName}</b> ({m.matchedAs}) in {m.parties} — {m.number}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </label>
+                );
+              }
 
               if (field.type === "checkbox") {
                 return (

@@ -19,6 +19,7 @@ export default function CaseDetailsPage() {
     initialValues,
     handleModalSubmit,
     handleDelete,
+    handleAdvanceTaskStatus,
     handleViewDocument,
     editCaseOpen,
     openEditCase,
@@ -55,6 +56,7 @@ export default function CaseDetailsPage() {
               onDelete={handleDelete}
               onViewDocument={handleViewDocument}
               onEditCase={openEditCase}
+              onAdvanceTaskStatus={handleAdvanceTaskStatus}
               showCaseDetailsLink={false}
             />
           </section>

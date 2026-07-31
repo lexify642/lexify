@@ -157,3 +157,15 @@ a.chip-link:hover { border-color:#9bbcff; color:#2865d2; }
 .ai-block-text { color:#40516a; line-height:1.65; margin:0; white-space:pre-line; }
 .insight-list-plain { margin:0; padding-left:18px; color:#3c4e68; }
 .insight-list-plain li { margin-bottom:8px; line-height:1.5; font-size:13px; }
+
+/* Task delegation + Client CRM / conflict check */
+.conflict-hint { background:#fff4e5; border:1px solid #fbe3bd; color:#a5650f; border-radius:7px; padding:9px 11px; font-size:12px; margin-top:8px; }
+.conflict-hint ul { margin:6px 0 0; padding-left:18px; }
+.conflict-hint li { margin-bottom:3px; }
+.conflict-check-form { display:flex; gap:10px; }
+.conflict-check-form input { flex:1; border:1px solid #dce4ef; border-radius:6px; padding:11px 12px; outline:none; }
+.client-directory-list { display:flex; flex-direction:column; gap:10px; }
+.client-directory-card { background:#fff; border:1px solid var(--line); border-radius:8px; padding:14px 15px; }
+.client-directory-head { display:flex; justify-content:space-between; align-items:center; gap:10px; width:100%; border:0; background:transparent; padding:0; text-align:left; }
+.client-directory-head b { color:#233955; font-size:14px; }
+.client-directory-matters { margin-top:12px; padding-top:12px; border-top:1px dashed var(--line); display:flex; flex-direction:column; gap:10px; }

@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useCases } from "./CasesContext";
 import { displayDate, toneForStage } from "./utils";
+import { TASK_STATUSES } from "@/data/team";
 
 function getInitialValues(type, index, current) {
   if (index === null || index === undefined) return null;
@@ -12,6 +13,10 @@ function getInitialValues(type, index, current) {
     return { date: "", text: note.text, isReminder: note.isReminder, dueDate: note.dueDate };
   }
   if (type === "document") return { name: current.docs[index] };
+  if (type === "task") {
+    const t = current.tasks[index];
+    return { title: t.title, assignee: `${t.assignee} — ${t.assigneeRole}`, dueDate: t.dueDate, status: t.status };
+  }
   return null;
 }
 
@@ -54,6 +59,7 @@ export function useCaseActions(caseNo) {
           activity: "Case created",
           previousDates: [],
           notes: [],
+          tasks: [],
           docs: [],
           client: null,
         },
@@ -128,6 +134,22 @@ export function useCaseActions(caseNo) {
             };
             return { ...c, previousDates: [entry, ...c.previousDates] };
           }
+          case "task": {
+            const [assignee, assigneeRole] = data.assignee.split(" — ");
+            const entry = {
+              id: index === null ? `task-${Date.now()}` : c.tasks[index].id,
+              title: data.title,
+              assignee,
+              assigneeRole,
+              dueDate: data.dueDate,
+              status: data.status || "Assigned",
+              createdAt: index === null ? new Date().toISOString().slice(0, 10) : c.tasks[index].createdAt,
+            };
+            return {
+              ...c,
+              tasks: index === null ? [entry, ...c.tasks] : c.tasks.map((t, i) => (i === index ? entry : t)),
+            };
+          }
           case "document": {
             const name = data.file?.name || data.name;
             return {
@@ -151,11 +173,28 @@ export function useCaseActions(caseNo) {
         if (c.no !== caseNo) return c;
         if (type === "client") return { ...c, client: null };
         if (type === "note") return { ...c, notes: c.notes.filter((_, i) => i !== index) };
+        if (type === "task") return { ...c, tasks: c.tasks.filter((_, i) => i !== index) };
         if (type === "document") return { ...c, docs: c.docs.filter((_, i) => i !== index) };
         return c;
       })
     );
     showToast(`${type} deleted.`);
+  }
+
+  function handleAdvanceTaskStatus(index) {
+    setCases((prev) =>
+      prev.map((c) => {
+        if (c.no !== caseNo) return c;
+        return {
+          ...c,
+          tasks: c.tasks.map((t, i) => {
+            if (i !== index) return t;
+            const next = TASK_STATUSES[(TASK_STATUSES.indexOf(t.status) + 1) % TASK_STATUSES.length];
+            return { ...t, status: next };
+          }),
+        };
+      })
+    );
   }
 
   function handleViewDocument(name) {
@@ -192,6 +231,7 @@ export function useCaseActions(caseNo) {
     initialValues: modal ? getInitialValues(modal.type, modal.index, current) : null,
     handleModalSubmit,
     handleDelete,
+    handleAdvanceTaskStatus,
     handleViewDocument,
     editCaseOpen,
     openEditCase,

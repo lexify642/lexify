@@ -97,6 +97,26 @@ export const initialCases = [
         completed: false,
       },
     ],
+    tasks: [
+      {
+        id: "01-t1",
+        title: "Draft compilation of annexures",
+        assignee: "R. Sharma",
+        assigneeRole: "Junior Advocate",
+        dueDate: "2026-07-23",
+        status: "In Progress",
+        createdAt: "2026-07-20",
+      },
+      {
+        id: "01-t2",
+        title: "Collect signed vakalatnama from client",
+        assignee: "P. Iyer",
+        assigneeRole: "Clerk",
+        dueDate: "2026-07-22",
+        status: "Assigned",
+        createdAt: "2026-07-20",
+      },
+    ],
     docs: ["Writ Petition.pdf", "List of Dates.docx"],
     client: {
       name: "Chevron Inc.",
@@ -207,6 +227,17 @@ export const initialCases = [
         completed: false,
       },
     ],
+    tasks: [
+      {
+        id: "02-t1",
+        title: "Prepare written brief for senior counsel",
+        assignee: "K. Verma",
+        assigneeRole: "Junior Advocate",
+        dueDate: "2026-07-24",
+        status: "Assigned",
+        createdAt: "2026-07-21",
+      },
+    ],
     docs: ["Plaint.pdf", "Written Statement.pdf"],
     client: {
       name: "ABC Corp.",
@@ -312,6 +343,26 @@ export const initialCases = [
         completed: false,
       },
     ],
+    tasks: [
+      {
+        id: "03-t1",
+        title: "Collect witness affidavits",
+        assignee: "P. Iyer",
+        assigneeRole: "Clerk",
+        dueDate: "2026-06-15",
+        status: "Done",
+        createdAt: "2026-06-01",
+      },
+      {
+        id: "03-t2",
+        title: "File reply to bail application",
+        assignee: "R. Sharma",
+        assigneeRole: "Junior Advocate",
+        dueDate: "2026-07-25",
+        status: "In Progress",
+        createdAt: "2026-07-15",
+      },
+    ],
     docs: ["Revision Petition.pdf", "Witness List.xlsx"],
     client: {
       name: "R. Khanna",
@@ -388,6 +439,7 @@ export const initialCases = [
       },
     ],
     notes: [],
+    tasks: [],
     docs: ["Company Petition.pdf"],
     client: {
       name: "Mehta Industries",
@@ -463,6 +515,17 @@ export const initialCases = [
       },
     ],
     notes: [],
+    tasks: [
+      {
+        id: "05-t1",
+        title: "Draft rejoinder to reply",
+        assignee: "S. Nair",
+        assigneeRole: "Staff",
+        dueDate: "2026-08-02",
+        status: "Assigned",
+        createdAt: "2026-07-22",
+      },
+    ],
     docs: ["Arbitration Petition.pdf"],
     client: {
       name: "Orion Logistics",

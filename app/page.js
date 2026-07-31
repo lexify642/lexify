@@ -7,6 +7,7 @@ import Topbar from "@/components/layout/Topbar";
 import { useCases } from "@/components/cases/CasesContext";
 import { displayDate } from "@/components/cases/utils";
 import { TODAY } from "@/data/cases";
+import { toneForTaskStatus } from "@/data/team";
 
 const STATS = [
   { icon: "▤", tone: "", number: 300, label: "Open Cases" },
@@ -89,6 +90,12 @@ export default function DashboardPage() {
     );
   }
 
+  const teamTasks = useMemo(() => {
+    return cases
+      .flatMap((c) => c.tasks.filter((t) => t.status !== "Done").map((t) => ({ caseNo: c.no, parties: c.parties, task: t })))
+      .sort((a, b) => a.task.dueDate.localeCompare(b.task.dueDate));
+  }, [cases]);
+
   return (
     <AppShell>
       <Topbar searchAriaLabel="Global search">
@@ -134,6 +141,9 @@ export default function DashboardPage() {
           </Link>
           <Link className="action-btn" href="/calculator">
             <b>₹</b>Calculate Court Fees
+          </Link>
+          <Link className="action-btn" href="/clients">
+            <b>◈</b>Clients &amp; Conflict Check
           </Link>
         </div>
 
@@ -187,6 +197,51 @@ export default function DashboardPage() {
               })
             ) : (
               <div className="empty-inline">No reminders due. Mark a note as a reminder from any case to see it here.</div>
+            )}
+          </section>
+
+          <section className="card" style={{ gridColumn: "1/-1" }}>
+            <div className="section-head">
+              <h2 className="section-title">Team Tasks</h2>
+              <Link className="link" href="/cases">
+                View all →
+              </Link>
+            </div>
+            {teamTasks.length ? (
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Task</th>
+                      <th>Assigned To</th>
+                      <th>Matter</th>
+                      <th>Due Date</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teamTasks.map(({ caseNo, parties, task }) => (
+                      <tr key={task.id}>
+                        <td>
+                          <strong>{task.title}</strong>
+                        </td>
+                        <td>
+                          {task.assignee}
+                          <br />
+                          <small>{task.assigneeRole}</small>
+                        </td>
+                        <td>{parties}</td>
+                        <td>{displayDate(task.dueDate)}</td>
+                        <td>
+                          <span className={`badge ${toneForTaskStatus(task.status)}`}>{task.status}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="empty-inline">No open tasks. Assign a task from any case to see it here.</div>
             )}
           </section>
 

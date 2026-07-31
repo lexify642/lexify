@@ -2,7 +2,17 @@
 
 import CaseOverview from "./CaseOverview";
 
-export default function CaseDrawer({ caseData, open, onClose, onEdit, onDelete, onAdd, onViewDocument, onEditCase }) {
+export default function CaseDrawer({
+  caseData,
+  open,
+  onClose,
+  onEdit,
+  onDelete,
+  onAdd,
+  onViewDocument,
+  onEditCase,
+  onAdvanceTaskStatus,
+}) {
   return (
     <>
       <div className={`drawer-backdrop${open ? " show" : ""}`} onClick={onClose} />
@@ -25,6 +35,7 @@ export default function CaseDrawer({ caseData, open, onClose, onEdit, onDelete, 
             onDelete={onDelete}
             onViewDocument={onViewDocument}
             onEditCase={onEditCase}
+            onAdvanceTaskStatus={onAdvanceTaskStatus}
           />
         </div>
       </aside>

@@ -24,6 +24,7 @@ export default function CaseDiary() {
     initialValues,
     handleModalSubmit,
     handleDelete,
+    handleAdvanceTaskStatus,
     handleViewDocument,
     editCaseOpen,
     openEditCase,
@@ -193,6 +194,7 @@ export default function CaseDiary() {
         onAdd={openModal}
         onViewDocument={handleViewDocument}
         onEditCase={openEditCase}
+        onAdvanceTaskStatus={handleAdvanceTaskStatus}
       />
 
       <CaseModal modal={modal} initialValues={initialValues} onClose={closeModal} onSubmit={handleModalSubmit} />
