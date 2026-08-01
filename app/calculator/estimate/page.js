@@ -1,8 +1,8 @@
 import AppShell from "@/components/layout/AppShell";
 import Topbar from "@/components/layout/Topbar";
-import CalculatorInputWorkspace from "@/components/calculator/CalculatorInputWorkspace";
+import CalculatorEstimateWorkspace from "@/components/calculator/CalculatorEstimateWorkspace";
 
-export default function CalculatorPage() {
+export default function CalculatorEstimatePage() {
   return (
     <AppShell>
       <Topbar searchPlaceholder="Search case, matter, parties, citation...">
@@ -15,7 +15,7 @@ export default function CalculatorPage() {
         <div className="avatar">JA</div>
       </Topbar>
       <div className="page">
-        <CalculatorInputWorkspace />
+        <CalculatorEstimateWorkspace />
       </div>
     </AppShell>
   );

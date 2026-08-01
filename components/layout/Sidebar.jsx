@@ -25,7 +25,7 @@ function activeKeyForPath(pathname) {
   if (pathname === "/") return "dashboard";
   if (pathname === "/cases") return "cases";
   if (pathname === "/lexi-ai") return "research";
-  if (pathname === "/calculator") return "calculator";
+  if (pathname.startsWith("/calculator")) return "calculator";
   if (pathname.startsWith("/case-research")) return "case-research";
   if (pathname.startsWith("/clients")) return "clients";
   if (pathname === "/admin") return "admin";

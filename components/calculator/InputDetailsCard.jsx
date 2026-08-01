@@ -5,7 +5,7 @@ import { INPUT_FIELD_GROUPS } from "./inputFieldsConfig";
 export default function InputDetailsCard({ values, onChange, onCalculate, onReset }) {
   return (
     <section className="card">
-      <h2 className="panel-title">1. Input Details</h2>
+      <h2 className="panel-title">Input Details</h2>
       {INPUT_FIELD_GROUPS.map((group) => (
         <div className="field-group" key={group.id}>
           <h4>{group.title}</h4>
