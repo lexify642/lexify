@@ -1,7 +1,6 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import AppShell from "@/components/layout/AppShell";
 import Topbar from "@/components/layout/Topbar";
 import CaseModal from "@/components/cases/CaseModal";
@@ -42,9 +41,6 @@ export default function CaseDetailsPage() {
             <h1 className="page-title">{current?.parties ?? "Case not found"}</h1>
             <p className="page-subtitle">{current ? `${current.number} · ${current.filing}` : ""}</p>
           </div>
-          <Link className="btn btn-outline" href="/cases">
-            ← Back to Case Diary
-          </Link>
         </div>
 
         {current ? (
@@ -57,7 +53,6 @@ export default function CaseDetailsPage() {
               onViewDocument={handleViewDocument}
               onEditCase={openEditCase}
               onAdvanceTaskStatus={handleAdvanceTaskStatus}
-              showCaseDetailsLink={false}
             />
           </section>
         ) : (

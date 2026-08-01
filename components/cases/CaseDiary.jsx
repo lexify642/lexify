@@ -1,37 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { TODAY } from "@/data/cases";
 import { useCases } from "./CasesContext";
 import { useCaseActions } from "./useCaseActions";
 import { displayDate } from "./utils";
-import CaseDrawer from "./CaseDrawer";
 import CaseModal from "./CaseModal";
-import EditCaseModal from "./EditCaseModal";
 
 export default function CaseDiary() {
+  const router = useRouter();
   const { cases } = useCases();
   const [selectedDate, setSelectedDate] = useState("");
   const [search, setSearch] = useState("");
-  const [selectedCaseNo, setSelectedCaseNo] = useState(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const {
-    current,
-    modal,
-    openModal,
-    closeModal,
-    initialValues,
-    handleModalSubmit,
-    handleDelete,
-    handleAdvanceTaskStatus,
-    handleViewDocument,
-    editCaseOpen,
-    openEditCase,
-    closeEditCase,
-    handleSaveCaseDetails,
-    toast,
-  } = useCaseActions(selectedCaseNo);
+  const { modal, openModal, closeModal, initialValues, handleModalSubmit, toast } = useCaseActions(null);
 
   const filteredCases = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -46,22 +29,12 @@ export default function CaseDiary() {
     function handleKeydown(event) {
       if (event.key === "Escape") {
         closeModal();
-        setDrawerOpen(false);
       }
     }
     document.addEventListener("keydown", handleKeydown);
     return () => document.removeEventListener("keydown", handleKeydown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function openDrawer(no) {
-    setSelectedCaseNo(no);
-    setDrawerOpen(true);
-  }
-
-  function closeDrawer() {
-    setDrawerOpen(false);
-  }
 
   function handleDateNav(kind) {
     if (kind === "today") {
@@ -148,12 +121,12 @@ export default function CaseDiary() {
             </thead>
             <tbody>
               {filteredCases.map((c) => (
-                <tr className="case-row" tabIndex={0} key={c.no} onClick={() => openDrawer(c.no)}>
+                <tr className="case-row" tabIndex={0} key={c.no} onClick={() => router.push(`/cases/${c.no}`)}>
                   <td>{c.no}</td>
                   <td>
                     <strong>{c.number}</strong>
                     <br />
-                    <small>View analytics →</small>
+                    <small>View case details →</small>
                   </td>
                   <td>
                     <strong>{c.court}</strong>
@@ -185,21 +158,7 @@ export default function CaseDiary() {
         )}
       </section>
 
-      <CaseDrawer
-        caseData={current}
-        open={drawerOpen}
-        onClose={closeDrawer}
-        onEdit={openModal}
-        onDelete={handleDelete}
-        onAdd={openModal}
-        onViewDocument={handleViewDocument}
-        onEditCase={openEditCase}
-        onAdvanceTaskStatus={handleAdvanceTaskStatus}
-      />
-
       <CaseModal modal={modal} initialValues={initialValues} onClose={closeModal} onSubmit={handleModalSubmit} />
-
-      <EditCaseModal open={editCaseOpen} caseData={current} onClose={closeEditCase} onSave={handleSaveCaseDetails} />
 
       <div className={`toast${toast.visible ? " show" : ""}`} role="status">
         {toast.message}
