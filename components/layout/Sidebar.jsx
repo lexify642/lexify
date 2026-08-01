@@ -10,6 +10,7 @@ const WORKSPACE_ITEMS = [
   { key: "calculator", href: "/calculator", icon: "₹", label: "Fee Calculator" },
   { key: "case-research", href: "/case-research", icon: "⚖", label: "Case Research" },
   { key: "clients", href: "/clients", icon: "◈", label: "Clients" },
+  { key: "legal-drafts", href: "/legal-drafts", icon: "❐", label: "Legal Drafts" },
   { key: "analytics", href: "/#analytics", icon: "◔", label: "Analytics" },
   { key: "research", href: "/lexi-ai", icon: "⌕", label: "Research" },
   { key: "clauses", href: "/draft#clauses", icon: "§", label: "Clause Bank" },
@@ -28,6 +29,7 @@ function activeKeyForPath(pathname) {
   if (pathname.startsWith("/calculator")) return "calculator";
   if (pathname.startsWith("/case-research")) return "case-research";
   if (pathname.startsWith("/clients")) return "clients";
+  if (pathname.startsWith("/legal-drafts")) return "legal-drafts";
   if (pathname === "/admin") return "admin";
   return null;
 }
