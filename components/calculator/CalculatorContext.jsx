@@ -14,7 +14,10 @@ const CalculatorContext = createContext(null);
 export function CalculatorProvider({ children }) {
   const [inputs, setInputs] = useState(DEFAULT_INPUT);
   const [linkedCaseNo, setLinkedCaseNo] = useState(null);
+  const [clientName, setClientName] = useState("");
+  const [manualMatterTitle, setManualMatterTitle] = useState("");
   const [dismissedAlertIds, setDismissedAlertIds] = useState([]);
+  const [isEditingEstimate, setIsEditingEstimate] = useState(false);
   const [history, setHistory] = useState([]);
   const [auditLog, setAuditLog] = useState([]);
   const [toast, setToast] = useState({ message: "", visible: false });
@@ -49,6 +52,8 @@ export function CalculatorProvider({ children }) {
           court: inputs.court,
           rulesVersion: result.meta.rulesVersion,
           lastModified: null,
+          clientName,
+          manualMatterTitle: linkedCase ? null : manualMatterTitle || null,
           linkedCase: linkedCase
             ? {
                 title: linkedCase.parties,
@@ -76,9 +81,15 @@ export function CalculatorProvider({ children }) {
     linkedCaseNo,
     setLinkedCaseNo,
     linkedCase,
+    clientName,
+    setClientName,
+    manualMatterTitle,
+    setManualMatterTitle,
     result,
     dismissedAlertIds,
     setDismissedAlertIds,
+    isEditingEstimate,
+    setIsEditingEstimate,
     history,
     setHistory,
     auditLog,

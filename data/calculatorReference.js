@@ -377,7 +377,7 @@ export const COURT_LEVEL_FILING_BASE = {
 
 const TRANSLATION_REQUIRED_STATES = ["Tamil Nadu", "West Bengal", "Karnataka", "Telangana"];
 const RULES_LAST_UPDATED = "01 Apr 2026";
-const RULES_VERSION = "CASEFLOW-FEE-RULES-2026.1";
+const RULES_VERSION = "LEXIFY-FEE-RULES-2026.1";
 export { RULES_VERSION, RULES_LAST_UPDATED };
 
 // The 25 auto-calculated line items. Each `amount(ctx)` is a pure function of the

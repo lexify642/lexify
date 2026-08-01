@@ -6,21 +6,33 @@ import { useCalculator } from "./CalculatorContext";
 import { INPUT_FIELD_GROUPS } from "./inputFieldsConfig";
 
 const STEPS = [
+  { key: "client", href: "/calculator", label: "Client & Matter" },
   ...INPUT_FIELD_GROUPS.map((group) => ({
     key: group.id,
-    href: group.id === "proceeding" ? "/calculator" : `/calculator/${group.id}`,
+    href: `/calculator/${group.id}`,
     label: group.title,
   })),
   { key: "estimate", href: "/calculator/estimate", label: "Court Fees" },
 ];
 
+// "Court Fees" is the computed result, not a step the user fills in — it's
+// reached by clicking "Continue"/"Finish" on the last real step, not by
+// picking it from the sidebar. Kept in STEPS (above) so handleContinue still
+// knows what comes after "Filing Options"; just left out of the nav list.
+const NAV_STEPS = STEPS.slice(0, -1);
+
 export default function CalculatorWizardShell({ stepKey, children }) {
   const router = useRouter();
-  const { setDismissedAlertIds, logEvent, showToast } = useCalculator();
+  const { setDismissedAlertIds, isEditingEstimate, setIsEditingEstimate, logEvent, showToast } = useCalculator();
   const currentIndex = STEPS.findIndex((s) => s.key === stepKey);
   const nextStep = STEPS[currentIndex + 1];
+  const isEditingAStep = isEditingEstimate && stepKey !== "estimate";
 
   function handleContinue() {
+    if (isEditingAStep) {
+      showToast("Changes saved.");
+      return;
+    }
     if (!nextStep) {
       router.push("/");
       return;
@@ -33,6 +45,16 @@ export default function CalculatorWizardShell({ stepKey, children }) {
     router.push(nextStep.href);
   }
 
+  function handleGetUpdatedEstimate() {
+    setIsEditingEstimate(false);
+    setDismissedAlertIds([]);
+    logEvent("Recalculated estimate (edited)");
+    showToast("Estimate updated.");
+    router.push("/calculator/estimate");
+  }
+
+  const continueLabel = isEditingAStep ? "Save Changes" : !nextStep ? "Finish" : nextStep.key === "estimate" ? "Get Estimate" : "Continue";
+
   return (
     <div className="wizard-shell">
       <aside className="wizard-sidebar">
@@ -41,7 +63,7 @@ export default function CalculatorWizardShell({ stepKey, children }) {
           <strong>Court Fees &amp; Costs</strong>
         </div>
         <nav className="wizard-steps">
-          {STEPS.map((s, index) => (
+          {NAV_STEPS.map((s, index) => (
             <Link
               key={s.key}
               href={s.href}
@@ -49,14 +71,24 @@ export default function CalculatorWizardShell({ stepKey, children }) {
             >
               <span className="wizard-step-icon">{index < currentIndex ? "✓" : index + 1}</span>
               {s.label}
+              {isEditingEstimate && <span className="wizard-step-edit">✏️</span>}
             </Link>
           ))}
         </nav>
-        <div className="wizard-sidebar-footer">
-          <Link href="/" className="btn btn-outline btn-block">
-            Save &amp; Exit
-          </Link>
-        </div>
+        {stepKey === "estimate" && !isEditingEstimate && (
+          <div className="wizard-sidebar-footer">
+            <button type="button" className="btn btn-outline btn-block" onClick={() => setIsEditingEstimate(true)}>
+              ✏️ Update Details
+            </button>
+          </div>
+        )}
+        {isEditingEstimate && (
+          <div className="wizard-sidebar-footer">
+            <button type="button" className="btn btn-block" onClick={handleGetUpdatedEstimate}>
+              Get Updated Estimate
+            </button>
+          </div>
+        )}
       </aside>
 
       <div className="wizard-main">
@@ -64,12 +96,12 @@ export default function CalculatorWizardShell({ stepKey, children }) {
           <Link href="/" className="wizard-back">
             ← Back
           </Link>
-          <span className="wizard-brand">⚖ CASEFLOW</span>
+          <span className="wizard-brand">⚖ LEXIFY</span>
         </div>
         <div className="wizard-content">
           {children}
           <button type="button" className="btn wizard-continue" onClick={handleContinue}>
-            {nextStep ? "Continue" : "Finish"}
+            {continueLabel}
           </button>
         </div>
       </div>

@@ -39,8 +39,8 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <Link className="brand" href="/">
-        <i className="brand-mark">C</i>
-        <span>CASEFLOW</span>
+        <i className="brand-mark">L</i>
+        <span>LEXIFY</span>
       </Link>
       <div className="nav-label">WORKSPACE</div>
       <ul className="nav-list">

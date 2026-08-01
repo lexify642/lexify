@@ -2,7 +2,7 @@ import "./globals.css";
 import { CasesProvider } from "@/components/cases/CasesContext";
 
 export const metadata = {
-  title: "CASEFLOW",
+  title: "LEXIFY",
   description: "Legal practice management workspace",
 };
 

@@ -1,53 +1,40 @@
-import { formatInr } from "./format";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
-// Pure formatting helpers for the Save/Export actions. Each is an honest
-// client-side approximation — see the plan's feasibility table: CSV stands in for
-// a real .xlsx export, mailto/wa.me stand in for real delivery, print stands in
-// for a real PDF binary.
+// jsPDF's built-in fonts don't include the ₹ glyph (outside WinAnsi
+// encoding) — it renders as a blank box, so PDF output uses "Rs." instead
+// of the ₹ symbol used on-screen (see format.js's formatInr).
+function formatInrForPdf(amount) {
+  const n = Number(amount) || 0;
+  return "Rs. " + Math.round(n).toLocaleString("en-IN");
+}
 
-export function buildCsvBlob(rows, totals) {
-  const header = ["Particular", "Stage", "Jurisdiction", "Amount", "Risk", "Notes"];
-  const lines = [header.join(",")];
-  rows.forEach((r) => {
-    const cells = [r.particular, r.stage, r.jurisdictionLabel, r.amount, r.risk, r.notes.replace(/,/g, ";")];
-    lines.push(cells.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","));
+export function downloadEstimatePdf({ rows, totals, matterDescription, filename }) {
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+
+  doc.setFontSize(16);
+  doc.text("Court Fees & Litigation Cost Estimate", 40, 44);
+  doc.setFontSize(10);
+  doc.setTextColor(90);
+  doc.text(matterDescription, 40, 62);
+  doc.setTextColor(0);
+
+  autoTable(doc, {
+    startY: 80,
+    head: [["Particular", "Stage", "Jurisdiction", "Amount", "Risk", "Notes"]],
+    body: rows.map((r) => [r.particular, r.stage, r.jurisdictionLabel, formatInrForPdf(r.amount), r.risk, r.notes]),
+    styles: { fontSize: 8, cellPadding: 6 },
+    headStyles: { fillColor: [124, 58, 237] },
+    columnStyles: { 3: { halign: "right" } },
   });
-  lines.push("");
-  lines.push(`"Grand Total","","","${totals.grandTotal}","","${totals.grandTotalWords}"`);
-  return new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-}
 
-export function buildSummaryText(input, totals, caseLabel) {
-  const lines = [
-    "Court Fees & Litigation Cost Estimate",
-    caseLabel ? `Matter: ${caseLabel}` : null,
-    `Nature of Proceeding: ${input.natureOfProceeding} (${input.caseCategory})`,
-    `Court: ${input.court}, ${input.state}`,
-    `Court Fee: ${formatInr(totals.courtFee)}`,
-    `Filing & Process Fee: ${formatInr(totals.filingCharges)}`,
-    `Documentation & Copying: ${formatInr(totals.documentation)}`,
-    `Grand Total: ${formatInr(totals.grandTotal)} (${totals.grandTotalWords})`,
-    "This is an indicative estimate only — actual costs may vary.",
-  ].filter(Boolean);
-  return lines.join("\n");
-}
+  const finalY = doc.lastAutoTable.finalY + 24;
+  doc.setFontSize(12);
+  doc.setFont(undefined, "bold");
+  doc.text(`Grand Total: ${formatInrForPdf(totals.grandTotal)}`, 40, finalY);
+  doc.setFont(undefined, "normal");
+  doc.setFontSize(9);
+  doc.text(totals.grandTotalWords, 40, finalY + 16);
 
-export function buildMailtoHref(summaryText, subject = "Litigation Cost Estimate") {
-  return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(summaryText)}`;
-}
-
-export function buildWhatsAppHref(summaryText, phoneDigits) {
-  const prefix = phoneDigits ? phoneDigits.replace(/[^0-9]/g, "") : "";
-  return `https://wa.me/${prefix}?text=${encodeURIComponent(summaryText)}`;
-}
-
-export function downloadBlob(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  doc.save(filename);
 }
