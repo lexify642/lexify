@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Topbar from "@/components/layout/Topbar";
 import LegalDraftCategoryWorkspace from "@/components/legal-drafts/LegalDraftCategoryWorkspace";
@@ -16,7 +17,9 @@ export default async function LegalDraftCategoryPage({ params }) {
         <span>◔</span>
         <div className="avatar">JA</div>
       </Topbar>
-      <LegalDraftCategoryWorkspace slug={slug} />
+      <Suspense fallback={<div className="page">Loading…</div>}>
+        <LegalDraftCategoryWorkspace slug={slug} />
+      </Suspense>
     </AppShell>
   );
 }
