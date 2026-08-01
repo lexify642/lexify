@@ -112,12 +112,12 @@ export default function DashboardPage() {
           <button className="btn">+ File Case</button>
         </div>
 
-        <section className="welcome">
+        <section className="welcome animate-appear">
           <h2>Welcome John</h2>
           <p>Manage your practice, stay ahead of deadlines, and make every case count.</p>
         </section>
 
-        <section className="stats-grid">
+        <section className="stats-grid animate-appear delay-1">
           {STATS.map((stat) => (
             <div className="stat-card" key={stat.label}>
               <div className={`stat-icon${stat.tone ? ` ${stat.tone}` : ""}`}>{stat.icon}</div>
