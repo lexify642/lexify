@@ -13,8 +13,17 @@ const TABS = [
   { key: "documents", label: "Linked Drafts & Documents" },
 ];
 
-export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onViewDocument, onEditCase, onAdvanceTaskStatus }) {
-  const [activeTab, setActiveTab] = useState(TABS[0].key);
+export default function CaseOverview({
+  caseData,
+  onAdd,
+  onEdit,
+  onDelete,
+  onViewDocument,
+  onEditCase,
+  onAdvanceTaskStatus,
+  initialTab,
+}) {
+  const [activeTab, setActiveTab] = useState(TABS.some((t) => t.key === initialTab) ? initialTab : TABS[0].key);
   const [expandedId, setExpandedId] = useState(null);
 
   if (!caseData) return null;

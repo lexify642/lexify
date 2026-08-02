@@ -1,6 +1,7 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { Suspense } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Topbar from "@/components/layout/Topbar";
 import CaseModal from "@/components/cases/CaseModal";
@@ -8,8 +9,10 @@ import EditCaseModal from "@/components/cases/EditCaseModal";
 import CaseOverview from "@/components/cases/CaseOverview";
 import { useCaseActions } from "@/components/cases/useCaseActions";
 
-export default function CaseDetailsPage() {
+function CaseDetailsContent() {
   const { caseNo } = useParams();
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab");
   const {
     current,
     modal,
@@ -53,6 +56,7 @@ export default function CaseDetailsPage() {
               onViewDocument={handleViewDocument}
               onEditCase={openEditCase}
               onAdvanceTaskStatus={handleAdvanceTaskStatus}
+              initialTab={initialTab}
             />
           </section>
         ) : (
@@ -68,5 +72,13 @@ export default function CaseDetailsPage() {
         {toast.message}
       </div>
     </AppShell>
+  );
+}
+
+export default function CaseDetailsPage() {
+  return (
+    <Suspense fallback={<div className="page">Loading…</div>}>
+      <CaseDetailsContent />
+    </Suspense>
   );
 }

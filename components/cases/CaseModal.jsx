@@ -20,7 +20,7 @@ const STAGE_OPTIONS = [
   "Judgment",
 ];
 
-const FORM_CONFIGS = {
+export const FORM_CONFIGS = {
   case: {
     fields: [
       { name: "number", label: "Case number", required: true },

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const WORKSPACE_ITEMS = [
   { key: "dashboard", href: "/", icon: "▦", label: "Dashboard" },
   { key: "cases", href: "/cases", icon: "▤", label: "Cases" },
+  { key: "calendar", href: "/calendar", icon: "▣", label: "Calendar" },
   { key: "task", href: "/cases", icon: "✓", label: "Task" },
   { key: "calculator", href: "/calculator", icon: "₹", label: "Fee Calculator" },
   { key: "case-research", href: "/case-research", icon: "⚖", label: "Case Research" },
@@ -25,6 +26,8 @@ const SYSTEM_ITEMS = [
 function activeKeyForPath(pathname) {
   if (pathname === "/") return "dashboard";
   if (pathname === "/cases") return "cases";
+  if (pathname.startsWith("/calendar")) return "calendar";
+  if (pathname.startsWith("/appointments")) return "calendar";
   if (pathname === "/lexi-ai") return "research";
   if (pathname.startsWith("/calculator")) return "calculator";
   if (pathname.startsWith("/case-research")) return "case-research";
