@@ -250,6 +250,27 @@ a.chip-link:hover { border-color:#c4a6f5; color:#6d28d9; }
 .document-preview-placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; background:#f9f7fe; border:1px dashed #d9c8f5; border-radius:10px; padding:48px 24px; color:#6d28d9; }
 .document-preview-placeholder svg { color:#8b5cf6; }
 .document-preview-placeholder p { margin:0; color:#6b7a91; font-size:13px; max-width:340px; }
+.calendar-layout { display:flex; align-items:flex-start; gap:20px; }
+.calendar-layout .calendar-card { flex:1; min-width:0; }
+.mini-calendar { width:270px; flex-shrink:0; background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px; position:sticky; top:20px; }
+.mini-cal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.mini-cal-head b { color:#233955; font-size:13px; }
+.mini-cal-nav { display:flex; gap:4px; }
+.mini-cal-nav button { width:24px; height:24px; border-radius:6px; border:1px solid var(--line); background:#fff; color:#65748a; display:inline-flex; align-items:center; justify-content:center; font-size:13px; }
+.mini-cal-nav button:hover { border-color:#c4a6f5; color:#6d28d9; }
+.mini-cal-weekdays { display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:4px; }
+.mini-cal-weekdays span { text-align:center; color:#9aa7bc; font-size:10px; font-weight:700; }
+.mini-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+.mini-cal-day { aspect-ratio:1; border:0; border-radius:50%; background:transparent; color:#38506f; font-size:11px; display:flex; align-items:center; justify-content:center; position:relative; }
+.mini-cal-day:hover { background:#f4f7fc; }
+.mini-cal-day.muted { color:#c3cbdb; }
+.mini-cal-day.has-events:not(.selected) { background:#e9f9f2; color:var(--green); font-weight:700; }
+.mini-cal-day.today { box-shadow:inset 0 0 0 2px var(--blue); font-weight:700; }
+.mini-cal-day.selected { background:var(--blue); color:#fff; font-weight:700; }
+@media (max-width:900px) {
+  .calendar-layout { flex-direction:column; }
+  .mini-calendar { width:100%; position:static; }
+}
 .calendar-card { padding:20px; }
 .calendar-toolbar { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
 .calendar-toolbar-left { display:flex; align-items:center; gap:8px; }

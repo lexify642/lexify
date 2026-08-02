@@ -12,6 +12,13 @@ export const EVENT_META = {
 
 export const EVENT_TYPES = ["case", "appointment", "task", "deadline"];
 
+export function toISODate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 function parseTimeToParts(time) {
   const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec((time || "").trim());
   if (!m) return null;
