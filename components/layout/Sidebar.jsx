@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSidebarNav } from "./SidebarContext";
 
 const WORKSPACE_ITEMS = [
   { key: "dashboard", href: "/", icon: "▦", label: "Dashboard" },
   { key: "cases", href: "/cases", icon: "▤", label: "Cases" },
   { key: "calendar", href: "/calendar", icon: "▣", label: "Calendar" },
-  { key: "task", href: "/cases", icon: "✓", label: "Task" },
+  { key: "task", href: "/tasks", icon: "✓", label: "Task" },
   { key: "calculator", href: "/calculator", icon: "₹", label: "Fee Calculator" },
   { key: "case-research", href: "/case-research", icon: "⚖", label: "Case Research" },
   { key: "clients", href: "/clients", icon: "◈", label: "Clients" },
@@ -28,6 +29,7 @@ function activeKeyForPath(pathname) {
   if (pathname === "/cases") return "cases";
   if (pathname.startsWith("/calendar")) return "calendar";
   if (pathname.startsWith("/appointments")) return "calendar";
+  if (pathname.startsWith("/tasks")) return "task";
   if (pathname === "/lexi-ai") return "research";
   if (pathname.startsWith("/calculator")) return "calculator";
   if (pathname.startsWith("/case-research")) return "case-research";
@@ -40,39 +42,50 @@ function activeKeyForPath(pathname) {
 export default function Sidebar() {
   const pathname = usePathname();
   const activeKey = activeKeyForPath(pathname);
+  const { mobileOpen, close } = useSidebarNav();
 
   return (
-    <aside className="sidebar">
-      <Link className="brand" href="/">
-        <i className="brand-mark">L</i>
-        <span>LEXIFY</span>
-      </Link>
-      <div className="nav-label">WORKSPACE</div>
-      <ul className="nav-list">
-        {WORKSPACE_ITEMS.map((item) => (
-          <li key={item.key}>
-            <Link className={item.key === activeKey ? "active" : ""} href={item.href}>
-              <span className="nav-icon">{item.icon}</span>
-              <span>{item.label}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-      <div className="nav-label">SYSTEM</div>
-      <ul className="nav-list">
-        {SYSTEM_ITEMS.map((item) => (
-          <li key={item.key}>
-            <Link className={item.key === activeKey ? "active" : ""} href={item.href}>
-              <span className="nav-icon">{item.icon}</span>
-              <span>{item.label}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-      <div className="sidebar-footer">
-        <strong>John Anderson</strong>
-        Administrator
-      </div>
-    </aside>
+    <>
+      <div className={`sidebar-backdrop${mobileOpen ? " show" : ""}`} onClick={close} aria-hidden="true" />
+      <aside className={`sidebar${mobileOpen ? " mobile-open" : ""}`}>
+        <div className="sidebar-top-row">
+          <Link className="brand" href="/" onClick={close}>
+            <i className="brand-mark">L</i>
+            <span>LEXIFY</span>
+          </Link>
+          <button type="button" className="sidebar-close-btn" onClick={close} aria-label="Close navigation">
+            ×
+          </button>
+        </div>
+        <div className="sidebar-scroll">
+          <div className="nav-label">WORKSPACE</div>
+          <ul className="nav-list">
+            {WORKSPACE_ITEMS.map((item) => (
+              <li key={item.key}>
+                <Link className={item.key === activeKey ? "active" : ""} href={item.href} onClick={close}>
+                  <span className="nav-icon">{item.icon}</span>
+                  <span>{item.label}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="nav-label">SYSTEM</div>
+          <ul className="nav-list">
+            {SYSTEM_ITEMS.map((item) => (
+              <li key={item.key}>
+                <Link className={item.key === activeKey ? "active" : ""} href={item.href} onClick={close}>
+                  <span className="nav-icon">{item.icon}</span>
+                  <span>{item.label}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="sidebar-footer">
+            <strong>John Anderson</strong>
+            Administrator
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }

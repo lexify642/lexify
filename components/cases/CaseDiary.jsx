@@ -7,14 +7,23 @@ import { useCases } from "./CasesContext";
 import { useCaseActions } from "./useCaseActions";
 import { displayDate } from "./utils";
 import CaseModal from "./CaseModal";
+import TaskModal from "@/components/tasks/TaskModal";
+import { useTasks } from "@/components/tasks/TasksContext";
 
 export default function CaseDiary() {
   const router = useRouter();
   const { cases } = useCases();
+  const { addTask } = useTasks();
   const [selectedDate, setSelectedDate] = useState("");
   const [search, setSearch] = useState("");
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
 
   const { modal, openModal, closeModal, initialValues, handleModalSubmit, toast } = useCaseActions(null);
+
+  function handleAddTask(data) {
+    addTask(data);
+    setTaskModalOpen(false);
+  }
 
   const filteredCases = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -59,9 +68,14 @@ export default function CaseDiary() {
           <h1 className="page-title">Case Diary</h1>
           <p className="page-subtitle">Your daily court schedule and matter activity.</p>
         </div>
-        <button className="btn" onClick={() => openModal("case")}>
-          + Add Case
-        </button>
+        <div className="header-actions">
+          <button className="btn btn-outline" onClick={() => setTaskModalOpen(true)}>
+            + New Task
+          </button>
+          <button className="btn" onClick={() => openModal("case")}>
+            + Add Case
+          </button>
+        </div>
       </div>
 
       <div className="diary-datebar">
@@ -159,6 +173,8 @@ export default function CaseDiary() {
       </section>
 
       <CaseModal modal={modal} initialValues={initialValues} onClose={closeModal} onSubmit={handleModalSubmit} />
+
+      <TaskModal open={taskModalOpen} onClose={() => setTaskModalOpen(false)} onSubmit={handleAddTask} />
 
       <div className={`toast${toast.visible ? " show" : ""}`} role="status">
         {toast.message}

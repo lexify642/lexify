@@ -9,6 +9,7 @@ import { useAppointments } from "@/components/appointments/AppointmentsContext";
 import { useCases } from "@/components/cases/CasesContext";
 import AppointmentModal from "@/components/appointments/AppointmentModal";
 import { displayDate } from "@/components/cases/utils";
+import { toneForEventStatus, toneForPriority } from "@/data/appointments";
 
 export default function AppointmentDetailsPage() {
   const { id } = useParams();
@@ -19,6 +20,7 @@ export default function AppointmentDetailsPage() {
 
   const appointment = appointments.find((a) => a.id === id);
   const linkedCase = appointment?.caseNo ? cases.find((c) => c.no === appointment.caseNo) : null;
+  const clientName = linkedCase ? linkedCase.client?.name : appointment?.clientName;
 
   function handleDelete() {
     if (!window.confirm("Delete this appointment?")) return;
@@ -38,7 +40,7 @@ export default function AppointmentDetailsPage() {
           <div>
             <p className="eyebrow">APPOINTMENT</p>
             <h1 className="page-title">{appointment?.title ?? "Appointment not found"}</h1>
-            {appointment && <p className="page-subtitle">{appointment.type}</p>}
+            {appointment && <p className="page-subtitle">{appointment.eventType}</p>}
           </div>
           {appointment && (
             <div className="drawer-actions">
@@ -54,19 +56,38 @@ export default function AppointmentDetailsPage() {
 
         {appointment ? (
           <section className="card">
+            <div className="event-badge-row">
+              <span className={`badge ${toneForEventStatus(appointment.status)}`}>{appointment.status}</span>
+              <span className={`badge ${toneForPriority(appointment.priority)}`}>{appointment.priority} priority</span>
+            </div>
+
             <div className="matter-meta">
               <span>
                 <b>{displayDate(appointment.date)}</b>
                 {appointment.time}
               </span>
               <span>
-                <b>{appointment.location}</b>
+                <b>{appointment.location || "—"}</b>
                 Location
               </span>
               <span>
-                <b>{appointment.type}</b>
-                Type
+                <b>{appointment.eventType}</b>
+                Event type
               </span>
+              <span>
+                <b>{appointment.assignedToName ? `${appointment.assignedToName} (${appointment.assignedToRole})` : "Unassigned"}</b>
+                Assigned to
+              </span>
+              <span>
+                <b>{appointment.reminder}{appointment.reminder === "Custom" && appointment.customReminderMinutes ? ` (${appointment.customReminderMinutes} min)` : ""}</b>
+                Reminder
+              </span>
+              {clientName && (
+                <span>
+                  <b>{clientName}</b>
+                  Client name
+                </span>
+              )}
             </div>
 
             {linkedCase && (
@@ -76,20 +97,12 @@ export default function AppointmentDetailsPage() {
                 </div>
                 <div className="client-card">
                   <b>{linkedCase.parties}</b>
-                  <span>{linkedCase.number}</span>
+                  <span>{linkedCase.number} · {linkedCase.court}</span>
+                  <span>Judge: {linkedCase.judge} · Stage: {linkedCase.stage}</span>
                   <Link className="link" href={`/cases/${linkedCase.no}`}>
                     View case →
                   </Link>
                 </div>
-              </div>
-            )}
-
-            {appointment.clientName && (
-              <div className="drawer-section">
-                <div className="drawer-section-title">
-                  <h3>Client</h3>
-                </div>
-                <div className="empty-inline">{appointment.clientName}</div>
               </div>
             )}
 

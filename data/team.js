@@ -9,8 +9,7 @@ export const TEAM_MEMBERS = [
   { id: "staff-01", name: "S. Nair", role: "Staff" },
 ];
 
-export const TASK_STATUSES = ["Assigned", "In Progress", "Done"];
-
-export function toneForTaskStatus(status) {
-  return { Assigned: "blue", "In Progress": "orange", Done: "green" }[status] || "blue";
-}
+// The app has no real login system — everything (case audit logs, the
+// Dashboard greeting, task permissions) treats this as the one signed-in
+// user.
+export const CURRENT_USER = { name: "John Anderson", role: "Senior Advocate" };

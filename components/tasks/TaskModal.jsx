@@ -1,56 +1,59 @@
 "use client";
 
-import { useCases } from "@/components/cases/CasesContext";
-import AppointmentFormFields from "./AppointmentFormFields";
+import TaskFormFields, { DEFAULT_ASSIGNED_BY } from "./TaskFormFields";
 
-export function readAppointmentForm(form) {
+export function readTaskForm(form, existingAttachments = []) {
   const fd = new FormData(form);
+  const assignedBy = fd.get("assignedBy") || DEFAULT_ASSIGNED_BY;
   const assignedTo = fd.get("assignedTo") || "";
+  const [assignedByName, assignedByRole] = assignedBy.split(" — ");
   const [assignedToName, assignedToRole] = assignedTo ? assignedTo.split(" — ") : [null, null];
   const reminder = fd.get("reminder") || "None";
+  const newFiles = fd.getAll("attachments").filter((f) => f && typeof f === "object" && f.size > 0);
+  const newAttachments = newFiles.map((f, i) => ({ id: `att-${Date.now()}-${i}`, name: f.name }));
   return {
     title: fd.get("title"),
-    eventType: fd.get("eventType"),
-    date: fd.get("date"),
-    time: fd.get("time"),
-    location: fd.get("location") || "",
+    description: fd.get("description") || "",
     caseNo: fd.get("caseNo") || null,
-    clientName: fd.get("clientName") || null,
-    notes: fd.get("notes") || "",
-    assignedToName: assignedToName || null,
-    assignedToRole: assignedToRole || null,
+    clientName: fd.get("clientName") || "",
+    assignedByName,
+    assignedByRole,
+    assignedToName,
+    assignedToRole,
+    priority: fd.get("priority") || "Medium",
+    dueDate: fd.get("dueDate"),
+    dueTime: fd.get("dueTime") || "",
     reminder,
     customReminderMinutes: reminder === "Custom" ? Number(fd.get("customReminderMinutes")) || null : null,
-    status: fd.get("status") || "Scheduled",
-    priority: fd.get("priority") || "Medium",
+    notes: fd.get("notes") || "",
+    attachments: [...existingAttachments, ...newAttachments],
   };
 }
 
 // "Select Existing Case" mode requires a case to actually be picked from the
 // searchable dropdown — the link is a hidden input, so native HTML
 // `required` can't surface this, hence the manual check.
-export function validateEventForm(form) {
+export function validateTaskForm(form) {
   const fd = new FormData(form);
   if (fd.get("mode") === "existing" && !fd.get("caseNo")) {
-    return "Please select a case, or switch to Independent Event.";
+    return "Please select a case, or switch to Independent Task.";
   }
   return null;
 }
 
-export default function AppointmentModal({ open, initialValues, onClose, onSubmit }) {
-  const { cases } = useCases();
+export default function TaskModal({ open, defaultValues, presetCaseNo, onClose, onSubmit }) {
   if (!open) return null;
 
   function handleSubmit(event) {
     event.preventDefault();
     const form = event.currentTarget;
     if (!form.reportValidity()) return;
-    const error = validateEventForm(form);
+    const error = validateTaskForm(form);
     if (error) {
       window.alert(error);
       return;
     }
-    onSubmit(readAppointmentForm(form));
+    onSubmit(readTaskForm(form, defaultValues?.attachments ?? []));
   }
 
   return (
@@ -58,15 +61,15 @@ export default function AppointmentModal({ open, initialValues, onClose, onSubmi
       <form className="case-modal event-modal" onSubmit={handleSubmit}>
         <div className="modal-head">
           <div>
-            <p className="eyebrow">CALENDAR EVENT</p>
-            <h2>{initialValues ? "Edit" : "Add"} event</h2>
+            <p className="eyebrow">TASK MANAGEMENT</p>
+            <h2>{defaultValues ? "Edit" : "New"} task</h2>
           </div>
           <button type="button" className="modal-close" onClick={onClose}>
             ×
           </button>
         </div>
         <div className="modal-body">
-          <AppointmentFormFields cases={cases} defaultValues={initialValues} />
+          <TaskFormFields defaultValues={defaultValues} presetCaseNo={presetCaseNo} />
         </div>
         <div className="modal-foot">
           <button type="button" className="btn btn-outline" onClick={onClose}>

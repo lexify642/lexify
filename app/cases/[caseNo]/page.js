@@ -21,7 +21,6 @@ function CaseDetailsContent() {
     initialValues,
     handleModalSubmit,
     handleDelete,
-    handleAdvanceTaskStatus,
     handleViewDocument,
     editCaseOpen,
     openEditCase,
@@ -55,7 +54,6 @@ function CaseDetailsContent() {
               onDelete={handleDelete}
               onViewDocument={handleViewDocument}
               onEditCase={openEditCase}
-              onAdvanceTaskStatus={handleAdvanceTaskStatus}
               initialTab={initialTab}
             />
           </section>

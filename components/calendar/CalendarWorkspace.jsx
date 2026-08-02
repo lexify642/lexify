@@ -8,6 +8,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { useCases } from "@/components/cases/CasesContext";
 import { useAppointments } from "@/components/appointments/AppointmentsContext";
+import { useTasks } from "@/components/tasks/TasksContext";
 import { TODAY } from "@/data/cases";
 import { buildCalendarEvents, filterEvents, groupEventsByDate, toISODate, EVENT_META, EVENT_TYPES } from "./eventAggregation";
 import DayEventsPanel from "./DayEventsPanel";
@@ -39,6 +40,7 @@ export default function CalendarWorkspace() {
   const router = useRouter();
   const { cases } = useCases();
   const { appointments } = useAppointments();
+  const { tasks } = useTasks();
   const calendarRef = useRef(null);
 
   const [view, setView] = useState("dayGridMonth");
@@ -50,7 +52,7 @@ export default function CalendarWorkspace() {
   const [currentDate, setCurrentDate] = useState(TODAY_DATE);
   const [selectedDate, setSelectedDate] = useState(null);
 
-  const allEvents = useMemo(() => buildCalendarEvents({ cases, appointments }), [cases, appointments]);
+  const allEvents = useMemo(() => buildCalendarEvents({ cases, appointments, tasks }), [cases, appointments, tasks]);
   const visibleEvents = useMemo(() => filterEvents(allEvents, { types, search }), [allEvents, types, search]);
   const eventsByDate = useMemo(() => groupEventsByDate(visibleEvents), [visibleEvents]);
 

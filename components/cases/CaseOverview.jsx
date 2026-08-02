@@ -1,32 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import { displayDate } from "./utils";
-import { toneForTaskStatus } from "@/data/team";
+import { toneForTaskStatus } from "@/data/tasks";
+import { useTasks } from "@/components/tasks/TasksContext";
+import TaskModal from "@/components/tasks/TaskModal";
 
 const TABS = [
   { key: "client", label: "Client Details" },
   { key: "hearing", label: "Upcoming Hearing" },
   { key: "previousDates", label: "Previous Dates" },
   { key: "notes", label: "Notes" },
-  { key: "tasks", label: "Tasks & Delegation" },
+  { key: "tasks", label: "Tasks" },
   { key: "documents", label: "Linked Drafts & Documents" },
 ];
 
-export default function CaseOverview({
-  caseData,
-  onAdd,
-  onEdit,
-  onDelete,
-  onViewDocument,
-  onEditCase,
-  onAdvanceTaskStatus,
-  initialTab,
-}) {
+const TASK_GROUPS = [
+  { key: "pending", label: "Pending Tasks", match: (status) => status === "Pending" },
+  { key: "inProgress", label: "In Progress Tasks", match: (status) => status === "In Progress" || status === "Waiting for Review" },
+  { key: "completed", label: "Completed Tasks", match: (status) => status === "Completed" },
+];
+
+export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onViewDocument, onEditCase, initialTab }) {
   const [activeTab, setActiveTab] = useState(TABS.some((t) => t.key === initialTab) ? initialTab : TABS[0].key);
   const [expandedId, setExpandedId] = useState(null);
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const { tasks, addTask } = useTasks();
+
+  const caseTasks = useMemo(() => tasks.filter((t) => t.caseNo === caseData?.no), [tasks, caseData?.no]);
 
   if (!caseData) return null;
+
+  function handleAddTask(data) {
+    addTask(data);
+    setTaskModalOpen(false);
+  }
 
   return (
     <>
@@ -188,39 +197,39 @@ export default function CaseOverview({
         {activeTab === "tasks" && (
           <section className="drawer-section">
             <div className="drawer-section-title">
-              <h3>Tasks &amp; Delegation</h3>
-              <button type="button" className="link" onClick={() => onAdd("task")}>
+              <h3>Tasks</h3>
+              <button type="button" className="link" onClick={() => setTaskModalOpen(true)}>
                 + Assign task
               </button>
             </div>
-            {caseData.tasks.length ? (
-              caseData.tasks.map((task, i) => (
-                <div className="case-task" key={task.id}>
-                  <button
-                    type="button"
-                    className="task-check"
-                    title="Click to advance status"
-                    onClick={() => onAdvanceTaskStatus(i)}
-                  >
-                    {task.status === "Done" ? "✓" : ""}
-                  </button>
-                  <div>
-                    <b>{task.title}</b>
-                    <small>
-                      {task.assignee} · {task.assigneeRole} · Due {displayDate(task.dueDate)}
-                    </small>
-                  </div>
-                  <span className={`badge ${toneForTaskStatus(task.status)}`}>{task.status}</span>
-                  <span className="mini-actions">
-                    <button type="button" onClick={() => onEdit("task", i)}>
-                      Edit
-                    </button>
-                    <button type="button" className="danger-action" onClick={() => onDelete("task", i)}>
-                      Delete
-                    </button>
-                  </span>
-                </div>
-              ))
+            {caseTasks.length ? (
+              <div className="case-task-groups">
+                {TASK_GROUPS.map((group) => {
+                  const groupTasks = caseTasks.filter((t) => group.match(t.status));
+                  return (
+                    <div className="case-task-group" key={group.key}>
+                      <h4>
+                        {group.label} <span className="case-task-group-count">{groupTasks.length}</span>
+                      </h4>
+                      {groupTasks.length ? (
+                        groupTasks.map((task) => (
+                          <Link href={`/tasks/${task.id}`} className="case-task" key={task.id}>
+                            <div>
+                              <b>{task.title}</b>
+                              <small>
+                                {task.assignedToName} · {task.assignedToRole} · Due {displayDate(task.dueDate)}
+                              </small>
+                            </div>
+                            <span className={`badge ${toneForTaskStatus(task.status)}`}>{task.status}</span>
+                          </Link>
+                        ))
+                      ) : (
+                        <div className="empty-inline">None.</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
               <div className="empty-inline">No tasks assigned yet.</div>
             )}
@@ -256,6 +265,8 @@ export default function CaseOverview({
           </section>
         )}
       </div>
+
+      <TaskModal open={taskModalOpen} presetCaseNo={caseData.no} onClose={() => setTaskModalOpen(false)} onSubmit={handleAddTask} />
     </>
   );
 }

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import AppShell from "@/components/layout/AppShell";
+import Topbar from "@/components/layout/Topbar";
 import { useCalculator } from "./CalculatorContext";
 import { INPUT_FIELD_GROUPS } from "./inputFieldsConfig";
 
@@ -56,55 +58,55 @@ export default function CalculatorWizardShell({ stepKey, children }) {
   const continueLabel = isEditingAStep ? "Save Changes" : !nextStep ? "Finish" : nextStep.key === "estimate" ? "Get Estimate" : "Continue";
 
   return (
-    <div className="wizard-shell">
-      <aside className="wizard-sidebar">
-        <div className="wizard-sidebar-title">
-          <span className="wizard-eyebrow">Calculating:</span>
-          <strong>Court Fees &amp; Costs</strong>
-        </div>
-        <nav className="wizard-steps">
-          {NAV_STEPS.map((s, index) => (
-            <Link
-              key={s.key}
-              href={s.href}
-              className={`wizard-step${index === currentIndex ? " active" : ""}${index < currentIndex ? " done" : ""}`}
-            >
-              <span className="wizard-step-icon">{index < currentIndex ? "✓" : index + 1}</span>
-              {s.label}
-              {isEditingEstimate && <span className="wizard-step-edit">✏️</span>}
-            </Link>
-          ))}
-        </nav>
-        {stepKey === "estimate" && !isEditingEstimate && (
-          <div className="wizard-sidebar-footer">
-            <button type="button" className="btn btn-outline btn-block" onClick={() => setIsEditingEstimate(true)}>
-              ✏️ Update Details
-            </button>
+    <AppShell>
+      <Topbar searchAriaLabel="Global search">
+        <span>◔</span>
+        <div className="avatar">JA</div>
+      </Topbar>
+      <div className="wizard-shell">
+        <aside className="wizard-sidebar">
+          <div className="wizard-sidebar-title">
+            <span className="wizard-eyebrow">Calculating:</span>
+            <strong>Court Fees &amp; Costs</strong>
           </div>
-        )}
-        {isEditingEstimate && (
-          <div className="wizard-sidebar-footer">
-            <button type="button" className="btn btn-block" onClick={handleGetUpdatedEstimate}>
-              Get Updated Estimate
-            </button>
-          </div>
-        )}
-      </aside>
+          <nav className="wizard-steps">
+            {NAV_STEPS.map((s, index) => (
+              <Link
+                key={s.key}
+                href={s.href}
+                className={`wizard-step${index === currentIndex ? " active" : ""}${index < currentIndex ? " done" : ""}`}
+              >
+                <span className="wizard-step-icon">{index < currentIndex ? "✓" : index + 1}</span>
+                {s.label}
+                {isEditingEstimate && <span className="wizard-step-edit">✏️</span>}
+              </Link>
+            ))}
+          </nav>
+          {stepKey === "estimate" && !isEditingEstimate && (
+            <div className="wizard-sidebar-footer">
+              <button type="button" className="btn btn-outline btn-block" onClick={() => setIsEditingEstimate(true)}>
+                ✏️ Update Details
+              </button>
+            </div>
+          )}
+          {isEditingEstimate && (
+            <div className="wizard-sidebar-footer">
+              <button type="button" className="btn btn-block" onClick={handleGetUpdatedEstimate}>
+                Get Updated Estimate
+              </button>
+            </div>
+          )}
+        </aside>
 
-      <div className="wizard-main">
-        <div className="wizard-topbar">
-          <Link href="/" className="wizard-back">
-            ← Back
-          </Link>
-          <span className="wizard-brand">⚖ LEXIFY</span>
-        </div>
-        <div className="wizard-content">
-          {children}
-          <button type="button" className="btn wizard-continue" onClick={handleContinue}>
-            {continueLabel}
-          </button>
+        <div className="wizard-main">
+          <div className="wizard-content">
+            {children}
+            <button type="button" className="btn wizard-continue" onClick={handleContinue}>
+              {continueLabel}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }

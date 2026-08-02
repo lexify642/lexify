@@ -24,8 +24,8 @@
 }
 .secondaryBtn {
   background: #fff;
-  color: #38506f;
-  border: 1px solid #dbe3ef;
+  color: var(--ink);
+  border: 1px solid var(--blue);
 }
 
 .clauseCard {
@@ -46,7 +46,7 @@
 }
 .clauseTab {
   flex: none;
-  background: #f8fafd;
+  background: var(--ivory);
   border: 1px solid var(--line);
   color: var(--muted);
   border-radius: 8px;
@@ -101,24 +101,24 @@
 .activeClauseConfig select,
 .activeClauseConfig input {
   background: #fff;
-  border: 1px solid #dce4ef;
+  border: 1px solid var(--line);
   border-radius: 6px;
-  color: #304662;
+  color: var(--ink);
   padding: 9px 10px;
   font-size: 12px;
   outline: none;
 }
 .activeClauseConfig select:focus,
 .activeClauseConfig input:focus {
-  border-color: #75a1ed;
-  box-shadow: 0 0 0 3px #2e6bea14;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px #C9A84C14;
 }
 .extraField {
   flex: 1 1 200px;
 }
 .extraField label {
   display: block;
-  color: #52637a;
+  color: var(--muted);
   font-size: 10px;
   font-weight: 700;
   margin-bottom: 6px;
@@ -157,10 +157,10 @@
 
 .jumpTerminal {
   margin-top: 14px;
-  border: 1px solid #f7cdd1;
+  border: 1px solid #E8C4C0;
   border-radius: 10px;
   padding: 12px;
-  background: #fff5f6;
+  background: #F5E3E1;
 }
 .jumpTerminalLabel {
   color: var(--red);
@@ -179,7 +179,7 @@
   flex: none;
   background: #fff;
   border: 1px solid var(--line);
-  color: #425570;
+  color: var(--ink);
   border-radius: 6px;
   padding: 8px 9px;
   font-size: 11px;
@@ -194,15 +194,15 @@
 .docPreview {
   margin-top: 14px;
   background: #fff;
-  color: #1b1e27;
-  border: 1px solid #edf0f4;
+  color: var(--ink);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 30px 36px;
   font-family: Georgia, serif;
   line-height: 1.7;
   max-height: 640px;
   overflow: auto;
-  box-shadow: 0 2px 10px rgba(16, 34, 76, 0.06);
+  box-shadow: 0 2px 10px rgba(45, 45, 45, 0.06);
 }
 .docPreview h3,
 .docPreview h4 {
@@ -226,7 +226,7 @@
   margin: 0 0 18px;
   padding: 12px 14px;
   border-radius: 6px;
-  background: #f4f0ff;
+  background: #FAF6EA;
   border-left: 4px solid var(--purple);
 }
 .inlineRisk strong {
@@ -242,10 +242,10 @@
   font-family: "DM Sans", Arial, sans-serif;
   font-size: 12px;
   text-align: left;
-  color: #33344a;
+  color: var(--ink);
 }
 .inlineRisk p b {
-  color: #1b1e27;
+  color: var(--ink);
 }
 
 /* Right: playbook */
@@ -280,8 +280,8 @@
   color: var(--ink);
 }
 .activeBadge {
-  background: #eaf1ff;
-  color: #3167ca;
+  background: #F5EAC9;
+  color: #8A6D23;
   font-size: 9px;
   font-weight: 700;
   padding: 3px 8px;
@@ -295,18 +295,18 @@
   line-height: 1.5;
 }
 .impactLabel b {
-  color: #334b6a;
+  color: var(--ink);
 }
 .guidanceBox {
   margin-top: 8px;
-  background: #f7faff;
+  background: #FBF8F1;
   border: 1px solid var(--line);
   border-left: 3px solid var(--blue);
   border-radius: 6px;
   padding: 8px 10px;
   font-family: "Courier New", monospace;
   font-size: 10.5px;
-  color: #4c5e76;
+  color: var(--muted);
 }
 
 /* Bottom: presets table */
@@ -336,8 +336,8 @@
 }
 .presetsTable th {
   text-align: left;
-  background: #f8fafd;
-  color: #748199;
+  background: var(--ivory);
+  color: var(--muted);
   font-size: 10px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -347,19 +347,19 @@
   padding: 12px 14px;
   border-top: 1px solid var(--line);
   font-size: 12px;
-  color: #40516a;
+  color: var(--ink);
   vertical-align: top;
 }
 .presetRow {
   cursor: pointer;
 }
 .presetRow:hover {
-  background: #f5f8fd;
+  background: #FAF7F2;
 }
 .pathId {
   display: inline-block;
-  background: #eaf1ff;
-  color: #2765ce;
+  background: #F5EAC9;
+  color: #8A6D23;
   font-weight: 700;
   border-radius: 6px;
   padding: 4px 8px;
@@ -387,6 +387,12 @@
     display: block;
     overflow-x: auto;
     white-space: nowrap;
+  }
+  .canvas {
+    padding: 12px;
+  }
+  .docPreview {
+    padding: 20px 16px;
   }
 }
 

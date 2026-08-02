@@ -4,10 +4,10 @@ import { Gavel, CalendarClock, CheckSquare, AlertTriangle } from "lucide-react";
 // (app/globals.css :root tokens) so calendar colors match badges/stat-icons
 // elsewhere instead of inventing a new palette.
 export const EVENT_META = {
-  case: { label: "Case", tone: "blue", hex: "#7c3aed", Icon: Gavel },
-  appointment: { label: "Appointment", tone: "purple", hex: "#8065db", Icon: CalendarClock },
-  task: { label: "Task", tone: "orange", hex: "#ee9d35", Icon: CheckSquare },
-  deadline: { label: "Deadline", tone: "red", hex: "#e6535b", Icon: AlertTriangle },
+  case: { label: "Case", tone: "blue", hex: "#C9A84C", Icon: Gavel },
+  appointment: { label: "Appointment", tone: "purple", hex: "#2D2D2D", Icon: CalendarClock },
+  task: { label: "Task", tone: "orange", hex: "#9C6B26", Icon: CheckSquare },
+  deadline: { label: "Deadline", tone: "red", hex: "#9C3B34", Icon: AlertTriangle },
 };
 
 export const EVENT_TYPES = ["case", "appointment", "task", "deadline"];
@@ -38,10 +38,11 @@ function toStart(date, time) {
   return `${date}T${String(parts.hours).padStart(2, "0")}:${String(parts.minutes).padStart(2, "0")}:00`;
 }
 
-// Builds the calendar's event list entirely from the live Cases/Appointments
-// data sources — no separate event store, so nothing here can drift out of
-// sync with the Case Diary, Task delegation, or Appointments modules.
-export function buildCalendarEvents({ cases, appointments }) {
+// Builds the calendar's event list entirely from the live Cases/Tasks/
+// Appointments data sources — no separate event store, so nothing here can
+// drift out of sync with the Case Diary, Task Management, or Appointments
+// modules.
+export function buildCalendarEvents({ cases, appointments, tasks }) {
   const events = [];
 
   cases.forEach((c) => {
@@ -61,23 +62,6 @@ export function buildCalendarEvents({ cases, appointments }) {
       });
     }
 
-    (c.tasks || []).forEach((t) => {
-      if (!t.dueDate) return;
-      events.push({
-        id: `task-${c.no}-${t.id}`,
-        type: "task",
-        date: t.dueDate,
-        time: "",
-        start: t.dueDate,
-        title: t.title,
-        subtitle: `${c.parties} · ${t.assignee}`,
-        caseNumber: c.number,
-        parties: c.parties,
-        clientName: c.client?.name ?? "",
-        href: `/cases/${c.no}?tab=tasks`,
-      });
-    });
-
     (c.notes || []).forEach((n) => {
       if (!n.isReminder || !n.dueDate) return;
       events.push({
@@ -96,8 +80,28 @@ export function buildCalendarEvents({ cases, appointments }) {
     });
   });
 
+  tasks.forEach((t) => {
+    if (!t.dueDate) return;
+    const linkedCase = t.caseNo ? cases.find((c) => c.no === t.caseNo) : null;
+    const clientName = linkedCase?.client?.name || t.clientName || "";
+    events.push({
+      id: `task-${t.id}`,
+      type: "task",
+      date: t.dueDate,
+      time: t.dueTime || "",
+      start: toStart(t.dueDate, t.dueTime),
+      title: t.title,
+      subtitle: [t.priority ? `${t.priority} priority` : "", t.assignedToName, linkedCase?.parties || clientName].filter(Boolean).join(" · "),
+      caseNumber: linkedCase?.number ?? "",
+      parties: linkedCase?.parties ?? "",
+      clientName,
+      href: `/tasks/${t.id}`,
+    });
+  });
+
   appointments.forEach((a) => {
     const linkedCase = a.caseNo ? cases.find((c) => c.no === a.caseNo) : null;
+    const clientName = linkedCase?.client?.name || a.clientName || "";
     events.push({
       id: `appointment-${a.id}`,
       type: "appointment",
@@ -105,10 +109,10 @@ export function buildCalendarEvents({ cases, appointments }) {
       time: a.time || "",
       start: toStart(a.date, a.time),
       title: a.title,
-      subtitle: [a.location, linkedCase?.parties || a.clientName].filter(Boolean).join(" · "),
+      subtitle: [a.eventType, a.location, linkedCase?.parties || clientName].filter(Boolean).join(" · "),
       caseNumber: linkedCase?.number ?? "",
       parties: linkedCase?.parties ?? "",
-      clientName: a.clientName ?? "",
+      clientName,
       href: `/appointments/${a.id}`,
     });
   });

@@ -1,11 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TEAM_MEMBERS, TASK_STATUSES } from "@/data/team";
 import { checkConflicts } from "./clientDirectory";
 import { useCases } from "./CasesContext";
-
-const ASSIGNEE_OPTIONS = TEAM_MEMBERS.map((m) => `${m.name} — ${m.role}`);
 
 const STAGE_OPTIONS = [
   "Institution",
@@ -67,14 +64,6 @@ export const FORM_CONFIGS = {
       { name: "outcome", label: "Outcome / Proceedings (this hearing)", required: true, full: true, type: "textarea", rows: 4 },
       { name: "nextDate", label: "Next Hearing Date", type: "date", required: true },
       { name: "nextTime", label: "Next Hearing Time", required: true, placeholder: "10:30 AM" },
-    ],
-  },
-  task: {
-    fields: [
-      { name: "title", label: "Task", required: true, full: true },
-      { name: "assignee", label: "Assign To", type: "select", options: ASSIGNEE_OPTIONS },
-      { name: "dueDate", label: "Due Date", type: "date", required: true },
-      { name: "status", label: "Status", type: "select", options: TASK_STATUSES },
     ],
   },
   document: {

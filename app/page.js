@@ -5,9 +5,11 @@ import Link from "next/link";
 import AppShell from "@/components/layout/AppShell";
 import Topbar from "@/components/layout/Topbar";
 import { useCases } from "@/components/cases/CasesContext";
+import { useTasks } from "@/components/tasks/TasksContext";
 import { displayDate } from "@/components/cases/utils";
 import { TODAY } from "@/data/cases";
-import { toneForTaskStatus } from "@/data/team";
+import { CURRENT_USER } from "@/data/team";
+import { toneForTaskStatus, toneForPriority, dueCategory, isRecentlyCompleted } from "@/data/tasks";
 
 const STATS = [
   { icon: "▤", tone: "", number: 300, label: "Open Cases" },
@@ -71,6 +73,7 @@ const RECENT_CASES = [
 
 export default function DashboardPage() {
   const { cases, setCases } = useCases();
+  const { tasks } = useTasks();
 
   const reminders = useMemo(() => {
     return cases
@@ -90,11 +93,25 @@ export default function DashboardPage() {
     );
   }
 
-  const teamTasks = useMemo(() => {
-    return cases
-      .flatMap((c) => c.tasks.filter((t) => t.status !== "Done").map((t) => ({ caseNo: c.no, parties: c.parties, task: t })))
-      .sort((a, b) => a.task.dueDate.localeCompare(b.task.dueDate));
-  }, [cases]);
+  const dueToday = useMemo(() => tasks.filter((t) => dueCategory(t) === "today"), [tasks]);
+  const overdueTasks = useMemo(() => tasks.filter((t) => dueCategory(t) === "overdue"), [tasks]);
+  const upcomingTasks = useMemo(() => tasks.filter((t) => dueCategory(t) === "upcoming"), [tasks]);
+  const recentlyCompleted = useMemo(() => tasks.filter((t) => isRecentlyCompleted(t)), [tasks]);
+
+  const assignedToMe = useMemo(
+    () =>
+      tasks
+        .filter((t) => t.assignedToName === CURRENT_USER.name && t.status !== "Completed" && t.status !== "Cancelled")
+        .sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || "")),
+    [tasks]
+  );
+  const assignedByMe = useMemo(
+    () =>
+      tasks
+        .filter((t) => t.assignedByName === CURRENT_USER.name && t.status !== "Completed" && t.status !== "Cancelled")
+        .sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || "")),
+    [tasks]
+  );
 
   return (
     <AppShell>
@@ -202,47 +219,65 @@ export default function DashboardPage() {
 
           <section className="card" style={{ gridColumn: "1/-1" }}>
             <div className="section-head">
-              <h2 className="section-title">Team Tasks</h2>
-              <Link className="link" href="/cases">
-                View all →
+              <h2 className="section-title">Task Overview</h2>
+              <Link className="link" href="/tasks">
+                View all tasks →
               </Link>
             </div>
-            {teamTasks.length ? (
-              <div className="table-wrap">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Task</th>
-                      <th>Assigned To</th>
-                      <th>Matter</th>
-                      <th>Due Date</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {teamTasks.map(({ caseNo, parties, task }) => (
-                      <tr key={task.id}>
-                        <td>
-                          <strong>{task.title}</strong>
-                        </td>
-                        <td>
-                          {task.assignee}
-                          <br />
-                          <small>{task.assigneeRole}</small>
-                        </td>
-                        <td>{parties}</td>
-                        <td>{displayDate(task.dueDate)}</td>
-                        <td>
-                          <span className={`badge ${toneForTaskStatus(task.status)}`}>{task.status}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="task-stat-tiles">
+              <Link className="task-stat-tile" href="/tasks?due=today">
+                <b>{dueToday.length}</b>
+                Due Today
+              </Link>
+              <Link className="task-stat-tile" href="/tasks?due=overdue">
+                <b>{overdueTasks.length}</b>
+                Overdue
+              </Link>
+              <Link className="task-stat-tile" href="/tasks?due=upcoming">
+                <b>{upcomingTasks.length}</b>
+                Upcoming
+              </Link>
+              <Link className="task-stat-tile" href="/tasks?due=completed">
+                <b>{recentlyCompleted.length}</b>
+                Recently Completed
+              </Link>
+            </div>
+            <div className="task-overview-lists">
+              <div>
+                <h4>Assigned to Me</h4>
+                {assignedToMe.length ? (
+                  assignedToMe.slice(0, 5).map((t) => (
+                    <div className="list-item" key={t.id}>
+                      <div className="item-main">
+                        <strong>{t.title}</strong>
+                        <span>Due {displayDate(t.dueDate)}</span>
+                      </div>
+                      <span className={`badge ${toneForPriority(t.priority)}`}>{t.priority}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="empty-inline">Nothing assigned to you right now.</div>
+                )}
               </div>
-            ) : (
-              <div className="empty-inline">No open tasks. Assign a task from any case to see it here.</div>
-            )}
+              <div>
+                <h4>Assigned by Me</h4>
+                {assignedByMe.length ? (
+                  assignedByMe.slice(0, 5).map((t) => (
+                    <div className="list-item" key={t.id}>
+                      <div className="item-main">
+                        <strong>{t.title}</strong>
+                        <span>
+                          {t.assignedToName} · Due {displayDate(t.dueDate)}
+                        </span>
+                      </div>
+                      <span className={`badge ${toneForTaskStatus(t.status)}`}>{t.status}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="empty-inline">You haven't assigned any open tasks.</div>
+                )}
+              </div>
+            </div>
           </section>
 
           <section className="card" style={{ gridColumn: "1/-1" }}>
