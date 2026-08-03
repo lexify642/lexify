@@ -129,7 +129,7 @@ export default function DocumentLibraryWorkspace() {
                 <td>{caseLabelFor(a.linkedCaseNo) || "—"}</td>
                 <td>{conversationLabelFor(a.sourceConversationId) || "—"}</td>
                 <td>{a.uploadedBy}</td>
-                <td>{new Date(a.uploadedAt).toLocaleDateString()}</td>
+                <td>{new Date(a.uploadedAt).toLocaleDateString("en-IN")}</td>
                 <td>{formatFileSize(a.size)}</td>
                 <td style={{ position: "relative" }}>
                   <AttachRowMenu attachment={a} conversations={conversations} />

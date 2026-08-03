@@ -18,7 +18,7 @@ function dateLabel(iso) {
   const yesterday = new Date(Date.now() - 86400000).toDateString();
   if (d.toDateString() === today) return "Today";
   if (d.toDateString() === yesterday) return "Yesterday";
-  return d.toLocaleDateString([], { day: "numeric", month: "long", year: "numeric" });
+  return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 }
 
 function headerSubtitle(conversation, online, typingBy, lastReplyName) {

@@ -55,7 +55,7 @@ export default function ClientChatPreviewModal({ conversation, onClose }) {
                       </>
                     )}
                     <div className="msg-meta">
-                      <span>{new Date(m.createdAt).toLocaleString()}</span>
+                      <span>{new Date(m.createdAt).toLocaleString("en-IN")}</span>
                     </div>
                   </div>
                 </div>

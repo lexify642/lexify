@@ -9,7 +9,7 @@ import AttachFileMenu from "./AttachFileMenu";
 import AttachmentPreviewModal from "./AttachmentPreviewModal";
 
 function timeLabel(iso) {
-  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 }
 
 function statusTicks(status) {

@@ -19,8 +19,8 @@ function timeLabel(iso) {
   if (!iso) return "";
   const d = new Date(iso);
   const today = new Date().toDateString();
-  if (d.toDateString() === today) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+  if (d.toDateString() === today) return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
 }
 
 export default function ChatSidebarList({ conversations, messages, readState, online, activeId, onSelect, onNewChat }) {

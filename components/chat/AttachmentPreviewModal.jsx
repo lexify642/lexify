@@ -92,7 +92,7 @@ export default function AttachmentPreviewModal({ attachment, onClose }) {
           <div className="attachment-meta-row">
             <span>{formatFileSize(attachment.size)}</span>
             <span>Uploaded by {attachment.uploadedBy}</span>
-            <span>{new Date(attachment.uploadedAt).toLocaleString()}</span>
+            <span>{new Date(attachment.uploadedAt).toLocaleString("en-IN")}</span>
           </div>
         </div>
         <div className="modal-foot">
