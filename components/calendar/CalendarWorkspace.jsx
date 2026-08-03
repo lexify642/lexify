@@ -14,6 +14,7 @@ import { buildCalendarEvents, filterEvents, groupEventsByDate, toISODate, EVENT_
 import DayEventsPanel from "./DayEventsPanel";
 import AddEventModal from "./AddEventModal";
 import MiniCalendar from "./MiniCalendar";
+import SmartRemindersCard from "@/components/intelligence/SmartRemindersCard";
 
 const VIEW_OPTIONS = [
   ["dayGridMonth", "Month"],
@@ -237,6 +238,8 @@ export default function CalendarWorkspace() {
           onNavigate={handleMiniNavigate}
         />
       </div>
+
+      <SmartRemindersCard />
 
       <DayEventsPanel
         open={!!panelDate}

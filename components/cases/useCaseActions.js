@@ -142,6 +142,12 @@ export function useCaseActions(caseNo) {
         }
       })
     );
+    // Feeds the Litigation Intelligence Activity Feed (components/intelligence/activity.js)
+    // via CasesContext.auditLog — same mechanism handleSaveCaseDetails already used below,
+    // just extended to the other real edit paths so the feed reflects all case activity,
+    // not only the "Edit Case" modal.
+    const editLabels = { note: "Note added", nextDate: "Next hearing date updated", previousDate: "Previous date added", document: "Document added" };
+    if (editLabels[type]) logCaseEdit(caseNo, [editLabels[type]]);
     closeModal();
     showToast("Changes saved.");
   }

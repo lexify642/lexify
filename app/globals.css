@@ -763,3 +763,29 @@ textarea:focus {
   box-shadow:0 0 0 3px rgba(109,93,252,.16);
   outline:none;
 }
+
+/* Litigation Intelligence layer — additive widgets only, reusing .card/
+   .badge/.list-item/.stat-icon/.empty-inline wherever possible. The few new
+   rules below (health-score list, case progress tracker) follow the same
+   token/spacing scale as the rest of the file. */
+.case-health-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; color:var(--ink); font-size:13px; }
+.case-health-list.issues { color:var(--muted); }
+.daily-brief-card h4 { color:var(--muted); font-weight:700; letter-spacing:.03em; text-transform:uppercase; }
+
+.case-insights-grid { display:grid; grid-template-columns:1fr 1.4fr; gap:24px; align-items:start; }
+.case-health-score-row { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.case-health-score-badge { font-size:15px; padding:6px 12px; }
+
+.case-progress-tracker { display:flex; align-items:flex-start; overflow-x:auto; padding:8px 0 4px; }
+.case-progress-step { display:flex; flex-direction:column; align-items:center; gap:6px; position:relative; flex:1; min-width:90px; }
+.case-progress-dot { width:14px; height:14px; border-radius:50%; background:var(--line); border:2px solid var(--line); flex-shrink:0; }
+.case-progress-label { font-size:11px; color:var(--muted); text-align:center; white-space:nowrap; }
+.case-progress-connector { position:absolute; top:6px; left:calc(50% + 14px); right:calc(-50% + 14px); height:2px; background:var(--line); z-index:-1; }
+.case-progress-step.done .case-progress-dot { background:var(--green); border-color:var(--green); }
+.case-progress-step.done .case-progress-connector { background:var(--green); }
+.case-progress-step.current .case-progress-dot { background:var(--blue); border-color:var(--blue); box-shadow:0 0 0 4px rgba(109,93,252,.16); }
+.case-progress-step.current .case-progress-label { color:var(--ink); font-weight:700; }
+
+@media (max-width:700px) {
+  .case-insights-grid { grid-template-columns:1fr; }
+}

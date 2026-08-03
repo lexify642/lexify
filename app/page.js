@@ -12,6 +12,14 @@ import { displayDate } from "@/components/cases/utils";
 import { TODAY } from "@/data/cases";
 import { CURRENT_USER } from "@/data/team";
 import { toneForTaskStatus, toneForPriority, dueCategory, isRecentlyCompleted } from "@/data/tasks";
+import DailyBriefCard from "@/components/intelligence/DailyBriefCard";
+import AttentionRequiredCard from "@/components/intelligence/AttentionRequiredCard";
+import AdvocateWorkloadCard from "@/components/intelligence/AdvocateWorkloadCard";
+import RecentActivityCard from "@/components/intelligence/RecentActivityCard";
+import SmartRemindersCard from "@/components/intelligence/SmartRemindersCard";
+import ClientFollowUpCard from "@/components/intelligence/ClientFollowUpCard";
+import RecentDocumentsCard from "@/components/intelligence/RecentDocumentsCard";
+import ProductivityAnalyticsCard from "@/components/intelligence/ProductivityAnalyticsCard";
 
 const STATS = [
   { icon: "▤", tone: "", number: 300, label: "Open Cases" },
@@ -141,6 +149,8 @@ export default function DashboardPage() {
           <button className="btn">+ File Case</button>
         </div>
 
+        <DailyBriefCard />
+
         <section className="welcome animate-appear">
           <h2>Welcome John</h2>
           <p>Manage your practice, stay ahead of deadlines, and make every case count.</p>
@@ -231,6 +241,17 @@ export default function DashboardPage() {
               <div className="empty-inline">No reminders due. Mark a note as a reminder from any case to see it here.</div>
             )}
           </section>
+
+          <AttentionRequiredCard />
+          <AdvocateWorkloadCard />
+
+          <ProductivityAnalyticsCard />
+
+          <RecentActivityCard />
+          <ClientFollowUpCard />
+
+          <SmartRemindersCard />
+          <RecentDocumentsCard />
 
           <section className="card" style={{ gridColumn: "1/-1" }}>
             <div className="section-head">

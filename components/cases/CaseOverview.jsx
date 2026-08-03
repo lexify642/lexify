@@ -13,6 +13,8 @@ import { canAccessCaseRoom } from "@/components/chat/permissions";
 import { formatFileSize } from "@/data/attachments";
 import AttachFileMenu from "@/components/chat/AttachFileMenu";
 import TaskModal from "@/components/tasks/TaskModal";
+import CaseHealthBadge from "@/components/intelligence/CaseHealthBadge";
+import CaseInsightsPanel from "./CaseInsightsPanel";
 
 const TABS = [
   { key: "client", label: "Client Details" },
@@ -21,6 +23,7 @@ const TABS = [
   { key: "notes", label: "Notes" },
   { key: "tasks", label: "Tasks" },
   { key: "documents", label: "Linked Drafts & Documents" },
+  { key: "insights", label: "Insights" },
 ];
 
 const TASK_GROUPS = [
@@ -60,6 +63,7 @@ export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onView
         <button type="button" className="btn btn-outline" onClick={onEditCase}>
           ✎ Edit Case
         </button>
+        <CaseHealthBadge caseData={caseData} showLevel />
         {hasDiscussionRoom && (
           <Link className="btn btn-outline" href={`/chat?c=${caseConversationId(caseData.no)}`}>
             💬 Discussion Room
@@ -315,6 +319,8 @@ export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onView
             )}
           </section>
         )}
+
+        {activeTab === "insights" && <CaseInsightsPanel caseData={caseData} caseTasks={caseTasks} hasDiscussionRoom={hasDiscussionRoom} />}
       </div>
 
       <TaskModal open={taskModalOpen} presetCaseNo={caseData.no} onClose={() => setTaskModalOpen(false)} onSubmit={handleAddTask} />

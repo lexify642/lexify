@@ -8,6 +8,7 @@ import TaskModal from "./TaskModal";
 import { TASK_STATUSES, PRIORITY_OPTIONS, toneForTaskStatus, toneForPriority, dueCategory } from "@/data/tasks";
 import { TEAM_MEMBERS } from "@/data/team";
 import { displayDate } from "@/components/cases/utils";
+import SmartRemindersCard from "@/components/intelligence/SmartRemindersCard";
 
 const DUE_FILTER_LABELS = { today: "Due Today", overdue: "Overdue", upcoming: "Upcoming", completed: "Recently Completed" };
 
@@ -78,6 +79,8 @@ export default function TaskListWorkspace() {
           + New Task
         </button>
       </div>
+
+      <SmartRemindersCard />
 
       <section className="card">
         <div className="library-controls task-filter-row">

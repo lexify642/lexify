@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell, UserPlus, Clock, AlertTriangle, RefreshCw, CheckCircle2, MessageSquare, AtSign, Paperclip, Link2, CalendarPlus } from "lucide-react";
+import { Bell, UserPlus, Clock, AlertTriangle, RefreshCw, CheckCircle2, MessageSquare, AtSign, Paperclip, Link2, CalendarPlus, BellRing } from "lucide-react";
 import { useTasks } from "./TasksContext";
 import { useCases } from "@/components/cases/CasesContext";
 import { useAppointments } from "@/components/appointments/AppointmentsContext";
@@ -10,6 +10,7 @@ import { useChat } from "@/components/chat/ChatContext";
 import { useAttachments } from "@/components/chat/AttachmentsContext";
 import { buildConversations } from "@/components/chat/conversationUtils";
 import { buildChatNotifications } from "@/components/chat/chatNotifications";
+import { computeSmartReminders } from "@/components/intelligence/reminders";
 import { CURRENT_USER } from "@/data/team";
 import { dueCategory } from "@/data/tasks";
 
@@ -24,6 +25,7 @@ const TYPE_ICONS = {
   document: Paperclip,
   caseLinked: Link2,
   appointment: CalendarPlus,
+  reminder: BellRing,
 };
 
 // Purely a computed, session-local feed (no backend/push infra exists in
@@ -73,7 +75,16 @@ export default function NotificationBell() {
   const notifications = useMemo(() => {
     const conversations = buildConversations({ cases, tasks, groups, directConversations, clientChatAssignments });
     const chatItems = buildChatNotifications({ messages, conversations, attachments, appointments });
-    return [...buildNotifications(tasks), ...chatItems].sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, 20);
+    const reminderItems = computeSmartReminders({ cases, tasks, appointments, attachments }).map((r) => ({
+      id: r.id,
+      type: r.type,
+      href: r.href,
+      message: r.label,
+      timestamp: r.timestamp,
+    }));
+    return [...buildNotifications(tasks), ...chatItems, ...reminderItems]
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+      .slice(0, 20);
   }, [tasks, cases, groups, directConversations, clientChatAssignments, messages, attachments, appointments]);
   const unreadCount = notifications.filter((n) => !seenIds.has(n.id)).length;
 

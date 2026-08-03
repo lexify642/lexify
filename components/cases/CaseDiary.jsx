@@ -9,6 +9,7 @@ import { displayDate } from "./utils";
 import CaseModal from "./CaseModal";
 import TaskModal from "@/components/tasks/TaskModal";
 import { useTasks } from "@/components/tasks/TasksContext";
+import CaseHealthBadge from "@/components/intelligence/CaseHealthBadge";
 
 export default function CaseDiary() {
   const router = useRouter();
@@ -130,6 +131,7 @@ export default function CaseDiary() {
                 <th>Parties</th>
                 <th>Next Date</th>
                 <th>Stage</th>
+                <th>Health</th>
                 <th>Last Activity</th>
               </tr>
             </thead>
@@ -157,6 +159,9 @@ export default function CaseDiary() {
                   </td>
                   <td>
                     <span className={`badge ${c.tone}`}>{c.stage}</span>
+                  </td>
+                  <td>
+                    <CaseHealthBadge caseData={c} />
                   </td>
                   <td>{c.activity}</td>
                 </tr>

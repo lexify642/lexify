@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCases } from "@/components/cases/CasesContext";
 import { buildClientDirectory, checkConflicts } from "@/components/cases/clientDirectory";
-import { clientConversationId } from "@/components/chat/ChatContext";
+import { clientConversationId, useChat } from "@/components/chat/ChatContext";
+import { computeClientFollowUps } from "@/components/intelligence/reminders";
 
 export default function ClientDirectoryWorkspace() {
   const { cases } = useCases();
+  const { messages } = useChat();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [conflictQuery, setConflictQuery] = useState("");
@@ -25,6 +27,11 @@ export default function ClientDirectoryWorkspace() {
   }, [searchParams]);
 
   const directory = useMemo(() => buildClientDirectory(cases), [cases]);
+  const followUpByClient = useMemo(() => {
+    const map = new Map();
+    computeClientFollowUps({ cases, messages }, 0).forEach((f) => map.set(f.clientName, f));
+    return map;
+  }, [cases, messages]);
   const filteredDirectory = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return directory;
@@ -92,6 +99,7 @@ export default function ClientDirectoryWorkspace() {
           <div className="client-directory-list">
             {filteredDirectory.map((client) => {
               const expanded = expandedClient === client.name;
+              const followUp = followUpByClient.get(client.name);
               return (
                 <article className="client-directory-card" id={`client-${client.name}`} key={client.name}>
                   <button
@@ -104,6 +112,14 @@ export default function ClientDirectoryWorkspace() {
                       <b>{client.name}</b>
                       <span className="previous-date-meta">
                         {client.phone} · {client.matters.length} matter{client.matters.length === 1 ? "" : "s"}
+                      </span>
+                      <span className="previous-date-meta">
+                        Last contacted:{" "}
+                        {followUp?.lastContactedDaysAgo === null || followUp?.lastContactedDaysAgo === undefined
+                          ? "Never"
+                          : followUp.lastContactedDaysAgo === 0
+                          ? "Today"
+                          : `${followUp.lastContactedDaysAgo} days ago`}
                       </span>
                     </div>
                     <span className="previous-date-expand">{expanded ? "▾" : "▸"}</span>
