@@ -21,11 +21,15 @@ const KINDS = [
 // reference, so the Case Diary stays the single source of truth for its own
 // data while the calendar can still show read-only case context and link
 // back to it.
-export default function AddEventModal({ open, onClose }) {
+// `taskPrefill`/`eventPrefill` seed a brand-new Task/Calendar Event's fields
+// (e.g. from the chat module's right-click "Create Appointment/Reminder/
+// Hearing/Deadline") without duplicating this modal — same one form, just
+// pre-populated and optionally forced to open on a given kind.
+export default function AddEventModal({ open, onClose, initialKind = "task", taskPrefill, eventPrefill }) {
   const { cases } = useCases();
   const { addAppointment } = useAppointments();
   const { addTask } = useTasks();
-  const [kind, setKind] = useState("task");
+  const [kind, setKind] = useState(initialKind);
 
   if (!open) return null;
 
@@ -78,7 +82,11 @@ export default function AddEventModal({ open, onClose }) {
             ))}
           </div>
 
-          {kind === "task" ? <TaskFormFields defaultValues={null} /> : <AppointmentFormFields cases={cases} defaultValues={null} />}
+          {kind === "task" ? (
+            <TaskFormFields defaultValues={taskPrefill || null} presetCaseNo={taskPrefill?.caseNo} />
+          ) : (
+            <AppointmentFormFields cases={cases} defaultValues={eventPrefill || null} />
+          )}
         </div>
         <div className="modal-foot">
           <button type="button" className="btn btn-outline" onClick={onClose}>

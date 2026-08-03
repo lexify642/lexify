@@ -3,7 +3,7 @@
 // case or fully independent). No such concept existed elsewhere in the app
 // before the Calendar feature — this is a fixed in-memory demo dataset, same
 // convention as data/team.js.
-export const EVENT_TYPE_OPTIONS = ["Appointment", "Deadline", "Personal", "Other"];
+export const EVENT_TYPE_OPTIONS = ["Appointment", "Hearing", "Reminder", "Deadline", "Personal", "Other"];
 
 export const REMINDER_OPTIONS = [
   "None",

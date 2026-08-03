@@ -1,16 +1,28 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCases } from "@/components/cases/CasesContext";
 import { buildClientDirectory, checkConflicts } from "@/components/cases/clientDirectory";
+import { clientConversationId } from "@/components/chat/ChatContext";
 
 export default function ClientDirectoryWorkspace() {
   const { cases } = useCases();
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [conflictQuery, setConflictQuery] = useState("");
   const [conflictResults, setConflictResults] = useState(null);
-  const [expandedClient, setExpandedClient] = useState(null);
+  const [expandedClient, setExpandedClient] = useState(searchParams.get("name") || null);
+
+  useEffect(() => {
+    const requested = searchParams.get("name");
+    if (requested) {
+      setExpandedClient(requested);
+      document.getElementById(`client-${requested}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const directory = useMemo(() => buildClientDirectory(cases), [cases]);
   const filteredDirectory = useMemo(() => {
@@ -81,7 +93,7 @@ export default function ClientDirectoryWorkspace() {
             {filteredDirectory.map((client) => {
               const expanded = expandedClient === client.name;
               return (
-                <article className="client-directory-card" key={client.name}>
+                <article className="client-directory-card" id={`client-${client.name}`} key={client.name}>
                   <button
                     type="button"
                     className="client-directory-head"
@@ -99,6 +111,9 @@ export default function ClientDirectoryWorkspace() {
                   {expanded && (
                     <div className="client-directory-matters">
                       <p className="hint">{client.address}</p>
+                      <Link href={`/chat?c=${clientConversationId(client.name)}`} className="btn btn-outline" style={{ marginBottom: 12 }}>
+                        💬 Open Chat
+                      </Link>
                       {client.matters.map((m) => (
                         <Link className="research-option" href={`/cases/${m.caseNo}`} key={m.caseNo} style={{ display: "block" }}>
                           <strong>{m.parties}</strong>

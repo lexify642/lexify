@@ -41,8 +41,13 @@ export function validateTaskForm(form) {
   return null;
 }
 
-export default function TaskModal({ open, defaultValues, presetCaseNo, onClose, onSubmit }) {
+// `prefill` seeds a brand-new task's fields (e.g. from the chat module's
+// right-click "Create Task") without flipping the modal into edit mode —
+// only `defaultValues` (a genuine existing task record) does that.
+export default function TaskModal({ open, defaultValues, presetCaseNo, prefill, onClose, onSubmit }) {
   if (!open) return null;
+
+  const initialValues = defaultValues || prefill || null;
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -69,7 +74,7 @@ export default function TaskModal({ open, defaultValues, presetCaseNo, onClose, 
           </button>
         </div>
         <div className="modal-body">
-          <TaskFormFields defaultValues={defaultValues} presetCaseNo={presetCaseNo} />
+          <TaskFormFields defaultValues={initialValues} presetCaseNo={presetCaseNo ?? prefill?.caseNo} />
         </div>
         <div className="modal-foot">
           <button type="button" className="btn btn-outline" onClick={onClose}>

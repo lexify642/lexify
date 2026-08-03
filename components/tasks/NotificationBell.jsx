@@ -2,12 +2,29 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell, UserPlus, Clock, AlertTriangle, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Bell, UserPlus, Clock, AlertTriangle, RefreshCw, CheckCircle2, MessageSquare, AtSign, Paperclip, Link2, CalendarPlus } from "lucide-react";
 import { useTasks } from "./TasksContext";
+import { useCases } from "@/components/cases/CasesContext";
+import { useAppointments } from "@/components/appointments/AppointmentsContext";
+import { useChat } from "@/components/chat/ChatContext";
+import { useAttachments } from "@/components/chat/AttachmentsContext";
+import { buildConversations } from "@/components/chat/conversationUtils";
+import { buildChatNotifications } from "@/components/chat/chatNotifications";
 import { CURRENT_USER } from "@/data/team";
 import { dueCategory } from "@/data/tasks";
 
-const TYPE_ICONS = { assigned: UserPlus, due: Clock, overdue: AlertTriangle, status: RefreshCw, completed: CheckCircle2 };
+const TYPE_ICONS = {
+  assigned: UserPlus,
+  due: Clock,
+  overdue: AlertTriangle,
+  status: RefreshCw,
+  completed: CheckCircle2,
+  message: MessageSquare,
+  mention: AtSign,
+  document: Paperclip,
+  caseLinked: Link2,
+  appointment: CalendarPlus,
+};
 
 // Purely a computed, session-local feed (no backend/push infra exists in
 // this app) — derived fresh from the live Tasks store every render, so it
@@ -45,11 +62,19 @@ function buildNotifications(tasks) {
 
 export default function NotificationBell() {
   const { tasks } = useTasks();
+  const { cases } = useCases();
+  const { appointments } = useAppointments();
+  const { messages, groups, directConversations, clientChatAssignments } = useChat();
+  const { attachments } = useAttachments();
   const [open, setOpen] = useState(false);
   const [seenIds, setSeenIds] = useState(() => new Set());
   const containerRef = useRef(null);
 
-  const notifications = useMemo(() => buildNotifications(tasks), [tasks]);
+  const notifications = useMemo(() => {
+    const conversations = buildConversations({ cases, tasks, groups, directConversations, clientChatAssignments });
+    const chatItems = buildChatNotifications({ messages, conversations, attachments, appointments });
+    return [...buildNotifications(tasks), ...chatItems].sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, 20);
+  }, [tasks, cases, groups, directConversations, clientChatAssignments, messages, attachments, appointments]);
   const unreadCount = notifications.filter((n) => !seenIds.has(n.id)).length;
 
   useEffect(() => {
@@ -82,7 +107,7 @@ export default function NotificationBell() {
               {notifications.map((n) => {
                 const Icon = TYPE_ICONS[n.type];
                 return (
-                  <Link href={`/tasks/${n.taskId}`} className="notification-item" key={n.id} onClick={() => setOpen(false)}>
+                  <Link href={n.href || `/tasks/${n.taskId}`} className="notification-item" key={n.id} onClick={() => setOpen(false)}>
                     <Icon size={14} strokeWidth={2} aria-hidden="true" />
                     <span>{n.message}</span>
                   </Link>

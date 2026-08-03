@@ -6,6 +6,8 @@ import AppShell from "@/components/layout/AppShell";
 import Topbar from "@/components/layout/Topbar";
 import { useCases } from "@/components/cases/CasesContext";
 import { useTasks } from "@/components/tasks/TasksContext";
+import { useChat } from "@/components/chat/ChatContext";
+import { buildConversations, lastMessageFor, messagePreview } from "@/components/chat/conversationUtils";
 import { displayDate } from "@/components/cases/utils";
 import { TODAY } from "@/data/cases";
 import { CURRENT_USER } from "@/data/team";
@@ -74,6 +76,16 @@ const RECENT_CASES = [
 export default function DashboardPage() {
   const { cases, setCases } = useCases();
   const { tasks } = useTasks();
+  const { messages, groups, directConversations, clientChatAssignments } = useChat();
+
+  const recentMessages = useMemo(() => {
+    const conversations = buildConversations({ cases, tasks, groups, directConversations, clientChatAssignments });
+    return conversations
+      .map((c) => ({ conversation: c, last: lastMessageFor(c.id, messages) }))
+      .filter((r) => r.last)
+      .sort((a, b) => b.last.createdAt.localeCompare(a.last.createdAt))
+      .slice(0, 5);
+  }, [cases, tasks, groups, directConversations, clientChatAssignments, messages]);
 
   const reminders = useMemo(() => {
     return cases
@@ -162,6 +174,9 @@ export default function DashboardPage() {
           <Link className="action-btn" href="/clients">
             <b>◈</b>Clients &amp; Conflict Check
           </Link>
+          <Link className="action-btn" href="/chat">
+            <b>💬</b>Communication Hub
+          </Link>
         </div>
 
         <div className="dashboard-grid">
@@ -214,6 +229,30 @@ export default function DashboardPage() {
               })
             ) : (
               <div className="empty-inline">No reminders due. Mark a note as a reminder from any case to see it here.</div>
+            )}
+          </section>
+
+          <section className="card" style={{ gridColumn: "1/-1" }}>
+            <div className="section-head">
+              <h2 className="section-title">Recent Messages</h2>
+              <Link className="link" href="/chat">
+                Open Communication Hub →
+              </Link>
+            </div>
+            {recentMessages.length ? (
+              recentMessages.map(({ conversation, last }) => (
+                <Link className="list-item" href={`/chat?c=${conversation.id}`} key={conversation.id}>
+                  <div className="avatar chat-avatar">{conversation.title.slice(0, 2).toUpperCase()}</div>
+                  <div className="item-main">
+                    <strong>{conversation.title}</strong>
+                    <span>
+                      {last.senderName === CURRENT_USER.name ? "You" : last.senderName}: {messagePreview(last)}
+                    </span>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <div className="empty-inline">No messages yet. Start a chat from the Communication Hub.</div>
             )}
           </section>
 

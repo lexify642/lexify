@@ -3,6 +3,8 @@ import { CasesProvider } from "@/components/cases/CasesContext";
 import { AppointmentsProvider } from "@/components/appointments/AppointmentsContext";
 import { TasksProvider } from "@/components/tasks/TasksContext";
 import { SidebarProvider } from "@/components/layout/SidebarContext";
+import { ChatProvider } from "@/components/chat/ChatContext";
+import { AttachmentsProvider } from "@/components/chat/AttachmentsContext";
 
 export const metadata = {
   title: "LEXIFY",
@@ -16,7 +18,11 @@ export default function RootLayout({ children }) {
         <CasesProvider>
           <AppointmentsProvider>
             <TasksProvider>
-              <SidebarProvider>{children}</SidebarProvider>
+              <AttachmentsProvider>
+                <ChatProvider>
+                  <SidebarProvider>{children}</SidebarProvider>
+                </ChatProvider>
+              </AttachmentsProvider>
             </TasksProvider>
           </AppointmentsProvider>
         </CasesProvider>

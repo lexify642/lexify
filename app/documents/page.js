@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Topbar from "@/components/layout/Topbar";
-import ClientDirectoryWorkspace from "@/components/clients/ClientDirectoryWorkspace";
+import DocumentLibraryWorkspace from "@/components/documents/DocumentLibraryWorkspace";
 
-export default function ClientsPage() {
+export default function DocumentsPage() {
   return (
     <AppShell>
       <Topbar searchAriaLabel="Global search">
@@ -12,7 +12,7 @@ export default function ClientsPage() {
         <div className="avatar">JA</div>
       </Topbar>
       <Suspense fallback={<div className="page">Loading…</div>}>
-        <ClientDirectoryWorkspace />
+        <DocumentLibraryWorkspace />
       </Suspense>
     </AppShell>
   );

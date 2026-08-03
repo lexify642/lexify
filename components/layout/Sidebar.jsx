@@ -8,10 +8,12 @@ const WORKSPACE_ITEMS = [
   { key: "dashboard", href: "/", icon: "▦", label: "Dashboard" },
   { key: "cases", href: "/cases", icon: "▤", label: "Cases" },
   { key: "calendar", href: "/calendar", icon: "▣", label: "Calendar" },
+  { key: "chat", href: "/chat", icon: "💬", label: "Communication" },
   { key: "task", href: "/tasks", icon: "✓", label: "Task" },
   { key: "calculator", href: "/calculator", icon: "₹", label: "Fee Calculator" },
   { key: "case-research", href: "/case-research", icon: "⚖", label: "Case Research" },
   { key: "clients", href: "/clients", icon: "◈", label: "Clients" },
+  { key: "documents", href: "/documents", icon: "▥", label: "Documents" },
   { key: "legal-drafts", href: "/legal-drafts", icon: "❐", label: "Legal Drafts" },
   { key: "analytics", href: "/#analytics", icon: "◔", label: "Analytics" },
   { key: "research", href: "/lexi-ai", icon: "⌕", label: "Research" },
@@ -29,11 +31,13 @@ function activeKeyForPath(pathname) {
   if (pathname === "/cases") return "cases";
   if (pathname.startsWith("/calendar")) return "calendar";
   if (pathname.startsWith("/appointments")) return "calendar";
+  if (pathname.startsWith("/chat")) return "chat";
   if (pathname.startsWith("/tasks")) return "task";
   if (pathname === "/lexi-ai") return "research";
   if (pathname.startsWith("/calculator")) return "calculator";
   if (pathname.startsWith("/case-research")) return "case-research";
   if (pathname.startsWith("/clients")) return "clients";
+  if (pathname.startsWith("/documents")) return "documents";
   if (pathname.startsWith("/legal-drafts")) return "legal-drafts";
   if (pathname === "/admin") return "admin";
   return null;

@@ -5,6 +5,13 @@ import Link from "next/link";
 import { displayDate } from "./utils";
 import { toneForTaskStatus } from "@/data/tasks";
 import { useTasks } from "@/components/tasks/TasksContext";
+import { useCases } from "@/components/cases/CasesContext";
+import { useChat, caseConversationId } from "@/components/chat/ChatContext";
+import { useAttachments } from "@/components/chat/AttachmentsContext";
+import { buildConversations } from "@/components/chat/conversationUtils";
+import { canAccessCaseRoom } from "@/components/chat/permissions";
+import { formatFileSize } from "@/data/attachments";
+import AttachFileMenu from "@/components/chat/AttachFileMenu";
 import TaskModal from "@/components/tasks/TaskModal";
 
 const TABS = [
@@ -27,10 +34,20 @@ export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onView
   const [expandedId, setExpandedId] = useState(null);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const { tasks, addTask } = useTasks();
+  const { cases } = useCases();
+  const { groups, directConversations, clientChatAssignments } = useChat();
+  const { attachments } = useAttachments();
 
   const caseTasks = useMemo(() => tasks.filter((t) => t.caseNo === caseData?.no), [tasks, caseData?.no]);
+  const linkedAttachments = useMemo(() => attachments.filter((a) => a.linkedCaseNo === caseData?.no), [attachments, caseData?.no]);
+  const conversations = useMemo(
+    () => buildConversations({ cases, tasks, groups, directConversations, clientChatAssignments }),
+    [cases, tasks, groups, directConversations, clientChatAssignments]
+  );
 
   if (!caseData) return null;
+
+  const hasDiscussionRoom = canAccessCaseRoom(caseData, tasks);
 
   function handleAddTask(data) {
     addTask(data);
@@ -43,6 +60,11 @@ export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onView
         <button type="button" className="btn btn-outline" onClick={onEditCase}>
           ✎ Edit Case
         </button>
+        {hasDiscussionRoom && (
+          <Link className="btn btn-outline" href={`/chat?c=${caseConversationId(caseData.no)}`}>
+            💬 Discussion Room
+          </Link>
+        )}
       </div>
 
       <div className="matter-meta">
@@ -262,11 +284,52 @@ export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onView
                 </span>
               ))}
             </div>
+
+            <div className="drawer-section-title" style={{ marginTop: 22 }}>
+              <h3>Shared from Communication Hub</h3>
+              {hasDiscussionRoom && (
+                <Link className="link" href={`/chat?c=${caseConversationId(caseData.no)}`}>
+                  Open Discussion Room →
+                </Link>
+              )}
+            </div>
+            {linkedAttachments.length ? (
+              <div className="case-linked-attachments">
+                {linkedAttachments.map((a) => (
+                  <div className="chat-linked-row shared-doc-row" key={a.id}>
+                    <a href={a.objectUrl || "#"} download={a.name} className="shared-doc-link">
+                      <strong>{a.name}</strong>
+                      <span>
+                        {a.mimeCategory.toUpperCase()} · {formatFileSize(a.size)} · {a.category || "Uncategorized"} · Uploaded by{" "}
+                        {a.uploadedBy}
+                      </span>
+                    </a>
+                    <AttachFileMenuButton attachment={a} conversations={conversations} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-inline">
+                No files saved from the Communication Hub yet — use "Save to Case" or "Attach to Case" on any chat attachment.
+              </div>
+            )}
           </section>
         )}
       </div>
 
       <TaskModal open={taskModalOpen} presetCaseNo={caseData.no} onClose={() => setTaskModalOpen(false)} onSubmit={handleAddTask} />
+    </>
+  );
+}
+
+function AttachFileMenuButton({ attachment, conversations }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className="msg-attachment-menu-btn" onClick={() => setMenuOpen((v) => !v)}>
+        ⋮
+      </button>
+      {menuOpen && <AttachFileMenu attachment={attachment} conversations={conversations} onClose={() => setMenuOpen(false)} />}
     </>
   );
 }
