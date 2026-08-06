@@ -63,7 +63,7 @@ export default function DocumentLibraryWorkspace() {
   return (
     <div className="page">
       <h1 className="page-title">Document Library</h1>
-      <p className="page-subtitle">
+      <p className="page-subtitle page-subtitle-long">
         Every file uploaded anywhere in the Communication Hub — chats, Case Discussion Rooms, Client Chats — appears here once.
         Nothing is duplicated: this is the same record you see attached in the source chat, case, or client file.
       </p>

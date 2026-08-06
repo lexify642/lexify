@@ -5,10 +5,7 @@ import CaseDiary from "@/components/cases/CaseDiary";
 export default function CasesPage() {
   return (
     <AppShell>
-      <Topbar>
-        <span>◌</span>
-        <div className="avatar">JA</div>
-      </Topbar>
+      <Topbar />
       <CaseDiary />
     </AppShell>
   );

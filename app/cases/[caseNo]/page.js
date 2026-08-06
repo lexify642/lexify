@@ -31,11 +31,7 @@ function CaseDetailsContent() {
 
   return (
     <AppShell>
-      <Topbar searchAriaLabel="Global search">
-        <span>◌</span>
-        <span>◔</span>
-        <div className="avatar">JA</div>
-      </Topbar>
+      <Topbar />
       <div className="page">
         <div className="heading-row">
           <div>

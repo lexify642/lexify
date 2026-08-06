@@ -4,10 +4,7 @@ import Topbar from "@/components/layout/Topbar";
 export default function LexiAiPage() {
   return (
     <AppShell>
-      <Topbar>
-        <span>◌</span>
-        <div className="avatar">JA</div>
-      </Topbar>
+      <Topbar />
       <div className="page">
         <div className="heading-row">
           <div>

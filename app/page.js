@@ -135,11 +135,7 @@ export default function DashboardPage() {
 
   return (
     <AppShell>
-      <Topbar searchAriaLabel="Global search">
-        <span>◌</span>
-        <span>◔</span>
-        <div className="avatar">JA</div>
-      </Topbar>
+      <Topbar />
       <div className="page">
         <div className="heading-row">
           <div>
@@ -174,9 +170,6 @@ export default function DashboardPage() {
           </button>
           <Link className="action-btn" href="/draft">
             <b>✦</b>Generate Notices
-          </Link>
-          <Link className="action-btn" href="/lexi-ai">
-            <b>⌕</b>Legal Research
           </Link>
           <Link className="action-btn" href="/calculator">
             <b>₹</b>Calculate Court Fees

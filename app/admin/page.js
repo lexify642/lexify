@@ -40,10 +40,7 @@ const ACTIVITY_LOG = [
 export default function AdminPage() {
   return (
     <AppShell>
-      <Topbar searchPlaceholder="Search users, clients, settings...">
-        <span>◌</span>
-        <div className="avatar">JA</div>
-      </Topbar>
+      <Topbar />
       <div className="page">
         <div className="heading-row">
           <div>

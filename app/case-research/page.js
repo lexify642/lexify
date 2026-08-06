@@ -6,11 +6,7 @@ import CaseResearchWorkspace from "@/components/case-research/CaseResearchWorksp
 export default function CaseResearchPage() {
   return (
     <AppShell>
-      <Topbar searchAriaLabel="Global search">
-        <span>◌</span>
-        <span>◔</span>
-        <div className="avatar">JA</div>
-      </Topbar>
+      <Topbar />
       <Suspense fallback={<div className="page">Loading…</div>}>
         <CaseResearchWorkspace />
       </Suspense>

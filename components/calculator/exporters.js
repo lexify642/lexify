@@ -24,7 +24,7 @@ export function downloadEstimatePdf({ rows, totals, matterDescription, filename 
     head: [["Particular", "Stage", "Jurisdiction", "Amount", "Risk", "Notes"]],
     body: rows.map((r) => [r.particular, r.stage, r.jurisdictionLabel, formatInrForPdf(r.amount), r.risk, r.notes]),
     styles: { fontSize: 8, cellPadding: 6 },
-    headStyles: { fillColor: [124, 58, 237] },
+    headStyles: { fillColor: [94, 43, 157] },
     columnStyles: { 3: { halign: "right" } },
   });
 

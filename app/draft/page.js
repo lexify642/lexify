@@ -9,7 +9,6 @@ export default function DraftPage() {
     <AppShell>
       <Topbar leftSlot={<GoBackButton />}>
         <SaveDraftButton className="btn btn-soft" />
-        <div className="avatar">JA</div>
       </Topbar>
       <LexiDraftWorkspace />
     </AppShell>

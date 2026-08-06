@@ -59,10 +59,7 @@ export default function CalculatorWizardShell({ stepKey, children }) {
 
   return (
     <AppShell>
-      <Topbar searchAriaLabel="Global search">
-        <span>◔</span>
-        <div className="avatar">JA</div>
-      </Topbar>
+      <Topbar />
       <div className="wizard-shell">
         <aside className="wizard-sidebar">
           <div className="wizard-sidebar-title">

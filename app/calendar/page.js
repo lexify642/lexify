@@ -14,11 +14,7 @@ const CalendarWorkspace = dynamic(() => import("@/components/calendar/CalendarWo
 export default function CalendarPage() {
   return (
     <AppShell>
-      <Topbar searchAriaLabel="Global search">
-        <span>◌</span>
-        <span>◔</span>
-        <div className="avatar">JA</div>
-      </Topbar>
+      <Topbar />
       <CalendarWorkspace />
     </AppShell>
   );

@@ -9,11 +9,7 @@ export default function CaseResearchDetailPage({ params }) {
   const { id } = use(params);
   return (
     <AppShell>
-      <Topbar searchAriaLabel="Global search">
-        <span>◌</span>
-        <span>◔</span>
-        <div className="avatar">JA</div>
-      </Topbar>
+      <Topbar />
       <CaseResearchDetail caseId={id} />
     </AppShell>
   );

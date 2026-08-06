@@ -6,11 +6,7 @@ import TaskListWorkspace from "@/components/tasks/TaskListWorkspace";
 export default function TasksPage() {
   return (
     <AppShell>
-      <Topbar searchAriaLabel="Global search">
-        <span>◌</span>
-        <span>◔</span>
-        <div className="avatar">JA</div>
-      </Topbar>
+      <Topbar />
       <Suspense fallback={<div className="page">Loading…</div>}>
         <TaskListWorkspace />
       </Suspense>
