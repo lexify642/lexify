@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   CLAUSES,
   DEFAULT_SELECTIONS,
@@ -10,6 +11,7 @@ import {
   RECITALS_HTML,
   CLOSING_HTML,
 } from "@/data/partnershipDeed";
+import { useDrafts } from "./DraftsContext";
 import styles from "./PartnershipDeedEngine.module.css";
 
 function optionLabel(clause, optionId) {
@@ -21,6 +23,8 @@ function playbookFor(clauseId) {
 }
 
 export default function PartnershipDeedEngine({ active }) {
+  const router = useRouter();
+  const { addDraft } = useDrafts();
   const [selections, setSelections] = useState(DEFAULT_SELECTIONS);
   const [extraValues, setExtraValues] = useState(DEFAULT_EXTRA_VALUES);
   const [downloaded, setDownloaded] = useState(false);
@@ -44,13 +48,16 @@ export default function PartnershipDeedEngine({ active }) {
     sectionRefs.current[clauseId]?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function buildDeedHtml() {
+  function buildDeedBodyHtml() {
     const clauseHtml = CLAUSES.map((clause) => {
       const label = optionLabel(clause, selections[clause.id]);
       const extraValue = clause.extraField ? extraValues[clause.extraField.name] : undefined;
       return `<h4>${clause.heading}</h4><p>${clause.buildText(label, extraValue)}</p>`;
     }).join("");
+    return `${RECITALS_HTML}${clauseHtml}${CLOSING_HTML}`;
+  }
 
+  function buildDeedHtml() {
     return `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head>
@@ -65,11 +72,23 @@ export default function PartnershipDeedEngine({ active }) {
 </style>
 </head>
 <body>
-${RECITALS_HTML}
-${clauseHtml}
-${CLOSING_HTML}
+${buildDeedBodyHtml()}
 </body>
 </html>`;
+  }
+
+  // Creates a real draft from the currently configured deed and hands off
+  // to the MS Word-style Draft Editor for further editing/review — the
+  // generator itself stays a fast configurator, not a second editing
+  // surface competing with the real one.
+  function handleSendToDraftEditor() {
+    const entry = addDraft({
+      title: `Partnership Deed — ${new Date().toLocaleDateString("en-IN")}`,
+      type: "Agreement",
+      blocks: [{ html: buildDeedBodyHtml() }],
+    });
+    router.push("/draft");
+    return entry;
   }
 
   function handleDownloadWord() {
@@ -98,7 +117,10 @@ ${CLOSING_HTML}
   return (
     <section className={`library-view${active ? " active" : ""}`} data-library-view="generator">
       <div className={styles.topActions}>
-          <button className={styles.primaryBtn} onClick={handleDownloadWord}>
+          <button className={styles.primaryBtn} onClick={handleSendToDraftEditor}>
+            ✎ Open in Draft Editor
+          </button>
+          <button className={styles.secondaryBtn} onClick={handleDownloadWord}>
             {downloaded ? "Downloaded ✓" : "📄 Download as MS Word"}
           </button>
           <button className={styles.secondaryBtn} onClick={handleExportParams}>

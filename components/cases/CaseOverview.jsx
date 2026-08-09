@@ -15,6 +15,11 @@ import AttachFileMenu from "@/components/chat/AttachFileMenu";
 import TaskModal from "@/components/tasks/TaskModal";
 import CaseHealthBadge from "@/components/intelligence/CaseHealthBadge";
 import CaseInsightsPanel from "./CaseInsightsPanel";
+import { useRouter } from "next/navigation";
+import { useClauseWorkspace } from "@/components/draft/ClauseWorkspaceContext";
+import ViewCollectionModal from "@/components/draft/clause-bank/ViewCollectionModal";
+import { useDrafts } from "@/components/draft/DraftsContext";
+import { useDraftReview } from "@/components/draft/DraftReviewContext";
 
 const TABS = [
   { key: "client", label: "Client Details" },
@@ -36,13 +41,26 @@ export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onView
   const [activeTab, setActiveTab] = useState(TABS.some((t) => t.key === initialTab) ? initialTab : TABS[0].key);
   const [expandedId, setExpandedId] = useState(null);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [viewingCollection, setViewingCollection] = useState(null);
   const { tasks, addTask } = useTasks();
   const { cases } = useCases();
   const { groups, directConversations, clientChatAssignments } = useChat();
   const { attachments } = useAttachments();
+  const { collections } = useClauseWorkspace();
+  const router = useRouter();
+  const { drafts, setActiveDraftId } = useDrafts();
+  const { reviewRequests } = useDraftReview();
 
   const caseTasks = useMemo(() => tasks.filter((t) => t.caseNo === caseData?.no), [tasks, caseData?.no]);
   const linkedAttachments = useMemo(() => attachments.filter((a) => a.linkedCaseNo === caseData?.no), [attachments, caseData?.no]);
+  const caseCollections = useMemo(() => collections.filter((c) => c.linkedCaseNo === caseData?.no), [collections, caseData?.no]);
+  const caseDrafts = useMemo(() => drafts.filter((d) => d.linkedCaseNo === caseData?.no), [drafts, caseData?.no]);
+  const caseReviews = useMemo(() => reviewRequests.filter((r) => r.caseNo === caseData?.no), [reviewRequests, caseData?.no]);
+
+  function openDraftEditor(draftId) {
+    setActiveDraftId(draftId);
+    router.push("/draft");
+  }
   const conversations = useMemo(
     () => buildConversations({ cases, tasks, groups, directConversations, clientChatAssignments }),
     [cases, tasks, groups, directConversations, clientChatAssignments]
@@ -290,6 +308,31 @@ export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onView
             </div>
 
             <div className="drawer-section-title" style={{ marginTop: 22 }}>
+              <h3>Draft Editor Documents</h3>
+              <Link className="link" href="/draft">
+                Open Draft Editor →
+              </Link>
+            </div>
+            {caseDrafts.length ? (
+              <div className="case-linked-attachments">
+                {caseDrafts.map((d) => {
+                  const reviews = caseReviews.filter((r) => r.draftId === d.id);
+                  return (
+                    <button type="button" className="chat-linked-row clause-collection-row" key={d.id} onClick={() => openDraftEditor(d.id)}>
+                      <strong>{d.title}</strong>
+                      <span>
+                        {d.versions.length} version{d.versions.length === 1 ? "" : "s"}
+                        {reviews.length ? ` · ${reviews.length} review request${reviews.length === 1 ? "" : "s"}` : ""}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="empty-inline">No drafts linked to this case yet — link a case when creating a draft.</div>
+            )}
+
+            <div className="drawer-section-title" style={{ marginTop: 22 }}>
               <h3>Shared from Communication Hub</h3>
               {hasDiscussionRoom && (
                 <Link className="link" href={`/chat?c=${caseConversationId(caseData.no)}`}>
@@ -317,6 +360,34 @@ export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onView
                 No files saved from the Communication Hub yet — use "Save to Case" or "Attach to Case" on any chat attachment.
               </div>
             )}
+
+            <div className="drawer-section-title" style={{ marginTop: 22 }}>
+              <h3>Clause Collections</h3>
+              <Link className="link" href="/draft/clauses">
+                Open Clause Bank →
+              </Link>
+            </div>
+            {caseCollections.length ? (
+              <div className="case-linked-attachments">
+                {caseCollections.map((col) => (
+                  <button
+                    type="button"
+                    className="chat-linked-row clause-collection-row"
+                    key={col.id}
+                    onClick={() => setViewingCollection(col)}
+                  >
+                    <strong>{col.name}</strong>
+                    <span>
+                      {col.clauseIds.length} Clause{col.clauseIds.length === 1 ? "" : "s"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-inline">
+                No clause collections linked to this case yet — save a collection from the Clause Bank and link it here.
+              </div>
+            )}
           </section>
         )}
 
@@ -324,6 +395,7 @@ export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onView
       </div>
 
       <TaskModal open={taskModalOpen} presetCaseNo={caseData.no} onClose={() => setTaskModalOpen(false)} onSubmit={handleAddTask} />
+      {viewingCollection && <ViewCollectionModal collection={viewingCollection} onClose={() => setViewingCollection(null)} />}
     </>
   );
 }

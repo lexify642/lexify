@@ -2,15 +2,18 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell, UserPlus, Clock, AlertTriangle, RefreshCw, CheckCircle2, MessageSquare, AtSign, Paperclip, Link2, CalendarPlus, BellRing } from "lucide-react";
+import { Bell, UserPlus, Clock, AlertTriangle, RefreshCw, CheckCircle2, MessageSquare, AtSign, Paperclip, Link2, CalendarPlus, BellRing, FileCheck2 } from "lucide-react";
 import { useTasks } from "./TasksContext";
 import { useCases } from "@/components/cases/CasesContext";
 import { useAppointments } from "@/components/appointments/AppointmentsContext";
 import { useChat } from "@/components/chat/ChatContext";
 import { useAttachments } from "@/components/chat/AttachmentsContext";
+import { useDrafts } from "@/components/draft/DraftsContext";
+import { useDraftReview } from "@/components/draft/DraftReviewContext";
 import { buildConversations } from "@/components/chat/conversationUtils";
 import { buildChatNotifications } from "@/components/chat/chatNotifications";
 import { computeSmartReminders } from "@/components/intelligence/reminders";
+import { buildReviewNotifications } from "@/components/draft/reviewNotifications";
 import { CURRENT_USER } from "@/data/team";
 import { dueCategory } from "@/data/tasks";
 
@@ -26,6 +29,7 @@ const TYPE_ICONS = {
   caseLinked: Link2,
   appointment: CalendarPlus,
   reminder: BellRing,
+  reviewStatus: FileCheck2,
 };
 
 // Purely a computed, session-local feed (no backend/push infra exists in
@@ -68,6 +72,8 @@ export default function NotificationBell() {
   const { appointments } = useAppointments();
   const { messages, groups, directConversations, clientChatAssignments } = useChat();
   const { attachments } = useAttachments();
+  const { drafts } = useDrafts();
+  const { reviewRequests } = useDraftReview();
   const [open, setOpen] = useState(false);
   const [seenIds, setSeenIds] = useState(() => new Set());
   const containerRef = useRef(null);
@@ -82,10 +88,11 @@ export default function NotificationBell() {
       message: r.label,
       timestamp: r.timestamp,
     }));
-    return [...buildNotifications(tasks), ...chatItems, ...reminderItems]
+    const reviewItems = buildReviewNotifications(reviewRequests, drafts);
+    return [...buildNotifications(tasks), ...chatItems, ...reminderItems, ...reviewItems]
       .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
       .slice(0, 20);
-  }, [tasks, cases, groups, directConversations, clientChatAssignments, messages, attachments, appointments]);
+  }, [tasks, cases, groups, directConversations, clientChatAssignments, messages, attachments, appointments, reviewRequests, drafts]);
   const unreadCount = notifications.filter((n) => !seenIds.has(n.id)).length;
 
   useEffect(() => {

@@ -4,6 +4,10 @@ import { AppointmentsProvider } from "@/components/appointments/AppointmentsCont
 import { TasksProvider } from "@/components/tasks/TasksContext";
 import { ChatProvider } from "@/components/chat/ChatContext";
 import { AttachmentsProvider } from "@/components/chat/AttachmentsContext";
+import { DraftsProvider } from "@/components/draft/DraftsContext";
+import { DraftCommentsProvider } from "@/components/draft/DraftCommentsContext";
+import { DraftReviewProvider } from "@/components/draft/DraftReviewContext";
+import { ClauseWorkspaceProvider } from "@/components/draft/ClauseWorkspaceContext";
 
 export const metadata = {
   title: "LEXIFY",
@@ -18,7 +22,15 @@ export default function RootLayout({ children }) {
           <AppointmentsProvider>
             <TasksProvider>
               <AttachmentsProvider>
-                <ChatProvider>{children}</ChatProvider>
+                <ChatProvider>
+                  <DraftsProvider>
+                    <DraftCommentsProvider>
+                      <DraftReviewProvider>
+                        <ClauseWorkspaceProvider>{children}</ClauseWorkspaceProvider>
+                      </DraftReviewProvider>
+                    </DraftCommentsProvider>
+                  </DraftsProvider>
+                </ChatProvider>
               </AttachmentsProvider>
             </TasksProvider>
           </AppointmentsProvider>

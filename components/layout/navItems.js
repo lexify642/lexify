@@ -6,7 +6,6 @@ export const WORKSPACE_ITEMS = [
   { key: "case-research", href: "/case-research", icon: "⚖", label: "Case Research" },
   { key: "clients", href: "/clients", icon: "◈", label: "Clients" },
   { key: "documents", href: "/documents", icon: "▥", label: "Documents" },
-  { key: "legal-drafts", href: "/legal-drafts", icon: "❐", label: "Legal Drafts" },
 ];
 
 // Grouped under the sidebar's "Tools" dropdown instead of sitting as their
@@ -18,10 +17,13 @@ const TOOLS_ITEMS = [
 ];
 
 // Grouped under the sidebar's "Library" dropdown instead of sitting as their
-// own top-level buttons.
+// own top-level buttons — every drafting-related feature (including Legal
+// Drafts, moved here from WORKSPACE_ITEMS) lives together in one place.
 const LIBRARY_ITEMS = [
-  { key: "clauses", href: "/draft#clauses", icon: "§", label: "Clause Bank" },
-  { key: "templates", href: "/draft#templates", icon: "▧", label: "Template Bank" },
+  { key: "legal-drafts", href: "/legal-drafts", icon: "❐", label: "Legal Drafts" },
+  { key: "clauses", href: "/draft/clauses", icon: "§", label: "Clause Bank" },
+  { key: "templates", href: "/draft/templates", icon: "▧", label: "Template Bank" },
+  { key: "draft-editor", href: "/draft", icon: "✎", label: "Draft Editor" },
 ];
 
 // Collapsible sidebar groups — rendered generically by Sidebar.jsx so a new
@@ -30,7 +32,7 @@ const LIBRARY_ITEMS = [
 // the pill row has no room for a dropdown.
 export const NAV_GROUPS = [
   { key: "tools", label: "Tools", icon: "◫", items: TOOLS_ITEMS, activePaths: ["/calendar", "/appointments", "/tasks", "/calculator"] },
-  { key: "library", label: "Library", icon: "▦", items: LIBRARY_ITEMS, activePaths: ["/draft"] },
+  { key: "library", label: "Drafting Library", icon: "▦", items: LIBRARY_ITEMS, activePaths: ["/draft", "/legal-drafts"] },
 ];
 
 export const SYSTEM_ITEMS = [{ key: "admin", href: "/admin", icon: "⚙", label: "Admin Panel" }];
@@ -47,6 +49,9 @@ export function activeKeyForPath(pathname) {
   if (pathname.startsWith("/clients")) return "clients";
   if (pathname.startsWith("/documents")) return "documents";
   if (pathname.startsWith("/legal-drafts")) return "legal-drafts";
+  if (pathname.startsWith("/draft/clauses")) return "clauses";
+  if (pathname.startsWith("/draft/templates")) return "templates";
+  if (pathname === "/draft") return "draft-editor";
   if (pathname === "/admin") return "admin";
   return null;
 }

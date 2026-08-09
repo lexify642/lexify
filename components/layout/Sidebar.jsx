@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { WORKSPACE_ITEMS, NAV_GROUPS, SYSTEM_ITEMS, activeKeyForPath } from "./navItems";
@@ -15,6 +15,24 @@ export default function Sidebar() {
   const [openGroups, setOpenGroups] = useState(() =>
     Object.fromEntries(NAV_GROUPS.map((group) => [group.key, group.activePaths.some((p) => pathname.startsWith(p))]))
   );
+
+  // Client-side navigation (Link clicks) doesn't remount Sidebar, so a group
+  // whose page becomes active after the initial render needs to force itself
+  // open too — e.g. following a Clause Bank link from a Case page shouldn't
+  // require the user to also manually expand Library.
+  useEffect(() => {
+    setOpenGroups((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      NAV_GROUPS.forEach((group) => {
+        if (group.activePaths.some((p) => pathname.startsWith(p)) && !next[group.key]) {
+          next[group.key] = true;
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [pathname]);
 
   function toggleGroup(key) {
     setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -56,7 +74,7 @@ export default function Sidebar() {
                   <ul className="nav-sublist">
                     {group.items.map((item) => (
                       <li key={item.key}>
-                        <Link href={item.href}>
+                        <Link className={item.key === activeKey ? "active" : ""} href={item.href}>
                           <span className="nav-icon">{item.icon}</span>
                           <span>{item.label}</span>
                         </Link>

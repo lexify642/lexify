@@ -32,7 +32,7 @@ function TemplateCard({ template, onSelect }) {
   );
 }
 
-export default function TemplateBank({ active, onSelect }) {
+export default function TemplateBank({ active = true, onSelect, onCreateBlank }) {
   return (
     <section className={`library-view${active ? " active" : ""}`} data-library-view="templates" id="templates">
       <div className="heading-row">
@@ -40,7 +40,9 @@ export default function TemplateBank({ active, onSelect }) {
           <h2 className="section-title">Template Bank</h2>
           <p className="page-subtitle">Choose a structured legal draft and its relevant variant to begin.</p>
         </div>
-        <button className="btn">+ Create from blank</button>
+        <button className="btn" onClick={onCreateBlank}>
+          + Create from blank
+        </button>
       </div>
       {templateGroups.map((group) => (
         <section className="template-group" key={group.heading}>

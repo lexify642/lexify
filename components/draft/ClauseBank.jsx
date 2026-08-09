@@ -2,33 +2,70 @@
 
 import { useMemo, useState } from "react";
 import clauses from "@/data/clauses.json";
+import { searchClauses } from "./clauseUtils";
+import { useClauseWorkspace } from "./ClauseWorkspaceContext";
+import ClauseSearchFilters from "./clause-bank/ClauseSearchFilters";
+import ClauseResultsTable from "./clause-bank/ClauseResultsTable";
+import ClauseDetailModal from "./clause-bank/ClauseDetailModal";
+import ClauseSelectionBar from "./clause-bank/ClauseSelectionBar";
+import RecentlyUsedStrip from "./clause-bank/RecentlyUsedStrip";
+import Pagination from "@/components/case-research/Pagination";
 
-function riskTone(risk) {
-  if (risk === "HIGH") return "red";
-  if (risk === "MEDIUM") return "orange";
-  return "blue";
-}
+const PAGE_SIZE = 12;
 
-export default function ClauseBank({ active, onInsert }) {
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("");
+export default function ClauseBank({ active = true }) {
+  const { savedClauseIds, logRecentUse } = useClauseWorkspace();
 
-  const categories = useMemo(
-    () => [...new Set(clauses.map((clause) => clause.category).filter(Boolean))].sort(),
-    []
-  );
+  const [hasSearched, setHasSearched] = useState(false);
+  const [activeFilters, setActiveFilters] = useState({});
+  const [activeQuery, setActiveQuery] = useState("");
+  const [savedOnly, setSavedOnly] = useState(false);
+  const [page, setPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [viewingClause, setViewingClause] = useState(null);
 
-  const matches = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return clauses.filter(
-      (clause) =>
-        (!category || clause.category === category) &&
-        [clause.id, clause.category, clause.type, clause.name, clause.domain, clause.text]
-          .join(" ")
-          .toLowerCase()
-          .includes(term)
-    );
-  }, [search, category]);
+  const results = useMemo(() => {
+    if (!hasSearched) return [];
+    let list = searchClauses(clauses, { filters: activeFilters, query: activeQuery });
+    if (savedOnly) list = list.filter((c) => savedClauseIds.includes(c.id));
+    return list;
+  }, [hasSearched, activeFilters, activeQuery, savedOnly, savedClauseIds]);
+
+  const totalPages = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
+  const pageResults = results.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const selectedClauses = useMemo(() => clauses.filter((c) => selectedIds.has(c.id)), [selectedIds]);
+
+  function handleSearch(filters, query) {
+    const hasCriteria = Object.values(filters).some(Boolean) || query.trim();
+    if (!hasCriteria) return;
+    setActiveFilters(filters);
+    setActiveQuery(query);
+    setHasSearched(true);
+    setPage(1);
+  }
+
+  function handleReset() {
+    setActiveFilters({});
+    setActiveQuery("");
+    setSavedOnly(false);
+    setHasSearched(false);
+    setSelectedIds(new Set());
+    setPage(1);
+  }
+
+  function toggleSelect(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function handleView(clause) {
+    setViewingClause(clause);
+    logRecentUse(clause.id, "viewed");
+  }
 
   return (
     <section className={`library-view${active ? " active" : ""}`} data-library-view="clauses">
@@ -36,51 +73,39 @@ export default function ClauseBank({ active, onInsert }) {
         <div>
           <h2 className="section-title">Clause Bank</h2>
           <p className="page-subtitle">
-            Complete commercial and litigation clause library imported from your databases.
+            {hasSearched ? `${results.length} clause${results.length === 1 ? "" : "s"} match your selection` : "Complete commercial and litigation clause library."}
           </p>
         </div>
         <span className="badge blue">{clauses.length} clauses</span>
       </div>
-      <div className="library-controls">
-        <div className="search">
-          <span>⌕</span>
-          <input
-            id="clause-search"
-            placeholder="Search clause name, text, category or ID..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
+
+      <RecentlyUsedStrip onView={handleView} />
+
+      <ClauseSearchFilters
+        clauses={clauses}
+        onSearch={handleSearch}
+        onReset={handleReset}
+        savedOnly={savedOnly}
+        onToggleSavedOnly={() => setSavedOnly((v) => !v)}
+      />
+
+      {hasSearched ? (
+        <>
+          <ClauseResultsTable
+            clauses={pageResults}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onRowClick={handleView}
           />
-        </div>
-        <select id="clause-category" value={category} onChange={(event) => setCategory(event.target.value)}>
-          <option value="">All categories</option>
-          {categories.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </div>
-      <p id="clause-count" className="library-summary">
-        {matches.length} clause{matches.length === 1 ? "" : "s"} available
-      </p>
-      <div id="clause-results" className="clause-grid">
-        {matches.map((clause) => (
-          <article className="card clause-card" key={clause.id}>
-            <span className={`badge ${riskTone(clause.risk)}`}>{clause.risk || "Standard"}</span>
-            <h3>{clause.name || clause.type}</h3>
-            <div className="clause-meta">
-              {clause.category} · {clause.type}
-            </div>
-            <p className="clause-text">{clause.text || "Clause text unavailable."}</p>
-            <div className="clause-footer">
-              <span className="clause-id">{clause.id}</span>
-              <button className="btn btn-soft" onClick={() => onInsert(clause.text)}>
-                Insert
-              </button>
-            </div>
-          </article>
-        ))}
-      </div>
+          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+        </>
+      ) : (
+        <div className="clause-search-empty-state">Choose at least one filter above to search clauses.</div>
+      )}
+
+      <ClauseSelectionBar selectedClauses={selectedClauses} onClear={() => setSelectedIds(new Set())} />
+
+      {viewingClause && <ClauseDetailModal clause={viewingClause} onClose={() => setViewingClause(null)} />}
     </section>
   );
 }
