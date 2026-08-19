@@ -6,7 +6,7 @@ import { messagesFor } from "./conversationUtils";
 import { formatFileSize } from "@/data/attachments";
 
 // Read-only "what the client actually sees" view — every staff message
-// renders as coming from "LEXIFY" only, never the individual advocate/staff
+// renders as coming from "LEXIFYI" only, never the individual advocate/staff
 // name, satisfying the identity-masking requirement even though this app
 // has no separate client-facing login to enforce it server-side.
 export default function ClientChatPreviewModal({ conversation, onClose }) {
@@ -23,7 +23,7 @@ export default function ClientChatPreviewModal({ conversation, onClose }) {
         </div>
         <div className="modal-body">
           <div className="empty-inline" style={{ marginBottom: 14 }}>
-            This is exactly what {conversation.clientName} sees — every reply appears from &quot;LEXIFY&quot;, never the
+            This is exactly what {conversation.clientName} sees — every reply appears from &quot;LEXIFYI&quot;, never the
             individual advocate or staff member who wrote it.
           </div>
           <div className="chat-message-list client-preview-list">
@@ -33,7 +33,7 @@ export default function ClientChatPreviewModal({ conversation, onClose }) {
               return (
                 <div className="chat-message own" key={m.id}>
                   <div className="chat-bubble">
-                    <div className="msg-sender">LEXIFY</div>
+                    <div className="msg-sender">LEXIFYI</div>
                     {m.deleted ? (
                       <div className="msg-text deleted">This message was deleted</div>
                     ) : (

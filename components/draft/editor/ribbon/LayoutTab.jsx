@@ -68,15 +68,26 @@ export default function LayoutTab({ draft }) {
             ))}
           </select>
           {draft.layout.pageSize === "Custom" && (
-            <input
-              className="ribbon-select ribbon-select-narrow"
-              type="number"
-              min={300}
-              max={1400}
-              placeholder="width px"
-              value={draft.layout.customPageWidth || ""}
-              onChange={(e) => updateDraftLayout(draft.id, { customPageWidth: Number(e.target.value) || null })}
-            />
+            <>
+              <input
+                className="ribbon-select ribbon-select-narrow"
+                type="number"
+                min={300}
+                max={1400}
+                placeholder="width px"
+                value={draft.layout.customPageWidth || ""}
+                onChange={(e) => updateDraftLayout(draft.id, { customPageWidth: Number(e.target.value) || null })}
+              />
+              <input
+                className="ribbon-select ribbon-select-narrow"
+                type="number"
+                min={300}
+                max={2000}
+                placeholder="height px"
+                value={draft.layout.customPageHeight || ""}
+                onChange={(e) => updateDraftLayout(draft.id, { customPageHeight: Number(e.target.value) || null })}
+              />
+            </>
           )}
         </div>
         <div className="ribbon-group-label">Page Size</div>

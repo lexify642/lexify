@@ -12,7 +12,10 @@ import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
+import Subscript from "@tiptap/extension-subscript";
+import Superscript from "@tiptap/extension-superscript";
 import { TableKit } from "@tiptap/extension-table/kit";
+import { PaginationExtension } from "./pagination";
 
 // Real Layout-tab paragraph controls (indent, line spacing, space before/
 // after, borders) — plain attributes on the block node, rendered as inline
@@ -46,6 +49,11 @@ function blockLayoutAttributes() {
       default: false,
       parseHTML: (el) => el.getAttribute("data-border") === "true",
       renderHTML: (attrs) => (attrs.border ? { "data-border": "true", class: "doc-para-border" } : {}),
+    },
+    shading: {
+      default: null,
+      parseHTML: (el) => el.getAttribute("data-shading"),
+      renderHTML: (attrs) => (attrs.shading ? { "data-shading": attrs.shading, style: `background-color:${attrs.shading}` } : {}),
     },
   };
 }
@@ -103,6 +111,49 @@ export const IndexMark = Mark.create({
         () =>
         ({ commands }) =>
           commands.toggleMark(this.name),
+    };
+  },
+});
+
+// Word's "Text Effects" button (Home → Font) — a small, real set of
+// CSS-based presets (outline/shadow) applied as an inline style via a mark,
+// same attribute-driven pattern as every other style mark here. Only as
+// many presets as are genuinely distinct CSS effects, not a fake gallery.
+export const TextEffect = Mark.create({
+  name: "textEffect",
+  addAttributes() {
+    return {
+      effect: {
+        default: null,
+        parseHTML: (el) => el.getAttribute("data-text-effect"),
+        renderHTML: (attrs) => {
+          if (!attrs.effect) return {};
+          const styles = {
+            outline: "-webkit-text-stroke:1px currentColor; color:transparent; -webkit-text-fill-color:transparent;",
+            shadow: "text-shadow:2px 2px 3px rgba(13,37,61,.45);",
+            glow: "text-shadow:0 0 6px var(--blue-soft), 0 0 2px var(--blue-soft);",
+          };
+          return { "data-text-effect": attrs.effect, style: styles[attrs.effect] || "" };
+        },
+      },
+    };
+  },
+  parseHTML() {
+    return [{ tag: "span[data-text-effect]" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["span", HTMLAttributes, 0];
+  },
+  addCommands() {
+    return {
+      setTextEffect:
+        (effect) =>
+        ({ commands }) =>
+          commands.setMark(this.name, { effect }),
+      unsetTextEffect:
+        () =>
+        ({ commands }) =>
+          commands.unsetMark(this.name),
     };
   },
 });
@@ -246,11 +297,15 @@ export function buildExtensions() {
     TableKit.configure({ table: { resizable: true } }),
     Placeholder.configure({ placeholder: "Start drafting…" }),
     CharacterCount,
+    Subscript,
+    Superscript,
+    TextEffect,
     CommentMark,
     IndexMark,
     PageBreak,
     FootnoteRef,
     ReferenceField,
+    PaginationExtension,
   ];
 }
 

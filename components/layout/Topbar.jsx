@@ -13,8 +13,8 @@ export default function Topbar({ leftSlot, children }) {
     <>
       <header className="topbar">
         <Link className="topbar-brand" href="/">
-          <img className="brand-logo" src={LOGO_URL} alt="LEXIFY" />
-          <span>LEXIFY</span>
+          <img className="brand-logo" src={LOGO_URL} alt="LEXIFYI" />
+          <span>LEXIFYI</span>
         </Link>
         {leftSlot}
         <div className="top-actions">

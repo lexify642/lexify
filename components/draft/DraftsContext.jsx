@@ -45,6 +45,7 @@ const DEFAULT_LAYOUT = {
   orientation: "portrait",
   pageSize: "A4",
   customPageWidth: null,
+  customPageHeight: null,
   columns: 1,
   differentFirstPage: false,
   lineNumbers: false,

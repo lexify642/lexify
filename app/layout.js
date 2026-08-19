@@ -10,7 +10,7 @@ import { DraftReviewProvider } from "@/components/draft/DraftReviewContext";
 import { ClauseWorkspaceProvider } from "@/components/draft/ClauseWorkspaceContext";
 
 export const metadata = {
-  title: "LEXIFY",
+  title: "LEXIFYI",
   description: "Legal practice management workspace",
 };
 

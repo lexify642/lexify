@@ -41,8 +41,8 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <Link className="brand" href="/">
-        <img className="brand-logo" src={LOGO_URL} alt="LEXIFY" />
-        <span>LEXIFY</span>
+        <img className="brand-logo" src={LOGO_URL} alt="LEXIFYI" />
+        <span>LEXIFYI</span>
       </Link>
       <div className="sidebar-scroll">
         <div className="nav-label">WORKSPACE</div>

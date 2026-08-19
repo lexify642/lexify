@@ -841,23 +841,74 @@ textarea:focus {
 }
 
 /* Login (email-OTP) — the one page in the app with no Sidebar/Topbar chrome,
-   since the user isn't authenticated yet. Reuses the same card/button/field
-   language as the rest of the app instead of a one-off style. */
-.auth-page { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:var(--page); }
-.auth-card { width:100%; max-width:400px; background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow-card); padding:36px 32px; }
-.auth-brand { display:flex; align-items:center; gap:11px; font-size:18px; font-weight:600; color:var(--ink); margin-bottom:28px; }
-.auth-brand .brand-logo { height:30px; }
-.auth-title { font-family:var(--font-display); font-size:26px; font-weight:300; letter-spacing:-.26px; margin:0 0 8px; color:var(--ink); }
-.auth-subtitle { color:var(--muted); font-size:14px; margin:0 0 24px; line-height:1.5; }
-.auth-form { display:flex; flex-direction:column; gap:16px; }
-.auth-field { display:flex; flex-direction:column; gap:7px; font-size:13px; font-weight:600; color:var(--muted); }
-.auth-field input { border:1px solid var(--line-strong); border-radius:6px; padding:10px 12px; font-size:15px; font-weight:400; color:var(--ink); outline:none; transition:border-color .15s ease; }
-.auth-field input:focus { border-color:var(--blue); }
-.auth-otp-input { letter-spacing:6px; font-weight:600; text-align:center; }
-.auth-error { color:var(--red); font-size:13px; }
-.auth-footer-row { display:flex; justify-content:space-between; align-items:center; margin-top:18px; gap:10px; flex-wrap:wrap; }
-.auth-footer-row .link { border:0; background:transparent; padding:0; font-size:13px; cursor:pointer; }
-.auth-footer-row .link:disabled { color:var(--muted-soft); cursor:not-allowed; }
+   since the user isn't authenticated yet. Deliberately its own full-screen
+   dark treatment (distinct from the rest of the app's light theme) — every
+   color below is still derived from the existing brand tokens (--blue,
+   --blue-soft, --champagne, --red), just re-expressed at dark-appropriate
+   alpha values rather than introducing new hues. All animation is plain CSS
+   (keyframes + a remount-on-step-change trick for the slide transition) —
+   no Framer Motion dependency needed for this one page.
+*/
+.otp-login-page { position:relative; min-height:100vh; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; background:#000; }
+.otp-login-page::before { content:""; position:absolute; inset:0; z-index:0; background:linear-gradient(to bottom, #5E2B9D66 0%, #5E2B9D4d 40%, #000 85%); }
+.otp-noise { position:absolute; inset:0; z-index:0; opacity:.035; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.otp-glow-blob { position:absolute; top:-140px; left:50%; transform:translateX(-50%); width:560px; height:560px; max-width:90vw; border-radius:50%; background:radial-gradient(circle, var(--blue-soft) 0%, transparent 70%); filter:blur(80px); opacity:.3; z-index:0; pointer-events:none; animation:otp-blob-pulse 6s ease-in-out infinite; }
+@keyframes otp-blob-pulse { 0%,100% { opacity:.22; transform:translateX(-50%) scale(1); } 50% { opacity:.42; transform:translateX(-50%) scale(1.08); } }
+
+.otp-login-content { position:relative; z-index:1; width:100%; max-width:384px; display:flex; flex-direction:column; align-items:center; }
+.otp-brand { display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none; font-weight:600; font-size:16px; margin-bottom:22px; }
+.otp-brand img { height:28px; }
+
+.otp-card { position:relative; width:100%; background:#00000066; backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border-radius:16px; border:1px solid #ffffff12; box-shadow:0 25px 60px #00000080; padding:32px 28px; overflow:hidden; }
+.otp-card-grid { position:absolute; inset:0; z-index:0; opacity:.02; pointer-events:none; background-image:repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 1px, transparent 16px); }
+
+.otp-beam { position:absolute; z-index:2; pointer-events:none; }
+.otp-beam-top { top:-1px; left:-30%; width:30%; height:2px; background:linear-gradient(90deg, transparent, var(--blue-soft), transparent); animation:otp-beam-x 4.8s linear infinite; }
+.otp-beam-right { top:-30%; right:-1px; width:2px; height:30%; background:linear-gradient(180deg, transparent, var(--blue-soft), transparent); animation:otp-beam-y 4.8s linear infinite; animation-delay:1.2s; }
+.otp-beam-bottom { bottom:-1px; right:-30%; width:30%; height:2px; background:linear-gradient(90deg, transparent, var(--blue-soft), transparent); animation:otp-beam-x-rev 4.8s linear infinite; animation-delay:2.4s; }
+.otp-beam-left { bottom:-30%; left:-1px; width:2px; height:30%; background:linear-gradient(180deg, transparent, var(--blue-soft), transparent); animation:otp-beam-y-rev 4.8s linear infinite; animation-delay:3.6s; }
+@keyframes otp-beam-x { 0% { left:-30%; } 100% { left:100%; } }
+@keyframes otp-beam-x-rev { 0% { right:-30%; } 100% { right:100%; } }
+@keyframes otp-beam-y { 0% { top:-30%; } 100% { top:100%; } }
+@keyframes otp-beam-y-rev { 0% { bottom:-30%; } 100% { bottom:100%; } }
+
+.otp-step { position:relative; z-index:1; }
+.otp-step[data-direction="forward"] { animation:otp-slide-in-right .2s ease both; }
+.otp-step[data-direction="back"] { animation:otp-slide-in-left .2s ease both; }
+@keyframes otp-slide-in-right { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+@keyframes otp-slide-in-left { from { opacity:0; transform:translateX(-20px); } to { opacity:1; transform:translateX(0); } }
+
+.otp-icon-box { position:relative; z-index:1; width:44px; height:44px; border-radius:12px; background:#5E2B9D40; border:1px solid #5E2B9D66; display:flex; align-items:center; justify-content:center; color:var(--champagne); margin-bottom:16px; }
+.otp-heading { position:relative; z-index:1; color:#fff; font-size:22px; font-weight:600; margin:0 0 6px; letter-spacing:-.3px; }
+.otp-subtext { position:relative; z-index:1; color:#ffffff80; font-size:14px; margin:0 0 24px; line-height:1.5; }
+.otp-subtext strong { color:#ffffffd9; font-weight:600; }
+
+.otp-form { position:relative; z-index:1; display:flex; flex-direction:column; }
+.otp-field { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+.otp-field label { font-size:11px; font-weight:600; color:#ffffff66; text-transform:uppercase; letter-spacing:.05em; }
+.otp-input { background:#ffffff0d; border:1px solid #ffffff1a; border-radius:12px; padding:13px 14px; font-size:15px; color:#fff; outline:none; transition:border-color .15s ease, background .15s ease; font-family:inherit; }
+.otp-input::placeholder { color:#ffffff33; }
+.otp-input:focus { border-color:var(--blue-soft); background:#ffffff12; }
+.otp-code-input { font-size:26px; font-weight:700; text-align:center; letter-spacing:.3em; padding:16px 14px; }
+
+.otp-submit-btn { width:100%; padding:13px; border-radius:12px; border:none; cursor:pointer; background:var(--blue); color:#fff; font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:8px; transition:transform .12s ease, background .15s ease, opacity .15s ease; }
+.otp-submit-btn:hover:not(:disabled) { transform:scale(1.02); background:var(--blue-hover); }
+.otp-submit-btn:active:not(:disabled) { transform:scale(.98); }
+.otp-submit-btn:disabled { opacity:.55; cursor:not-allowed; }
+.otp-spin { animation:otp-spin .8s linear infinite; }
+@keyframes otp-spin { to { transform:rotate(360deg); } }
+
+.otp-error { position:relative; z-index:1; background:#dc262626; border:1px solid #dc262659; border-radius:12px; padding:10px 14px; color:#f3a5a5; font-size:13px; margin-bottom:16px; }
+.otp-footnote { position:relative; z-index:1; color:#ffffff59; font-size:12px; text-align:center; margin-top:18px; line-height:1.5; }
+.otp-footer-row { position:relative; z-index:1; display:flex; justify-content:space-between; align-items:center; margin-top:18px; gap:10px; flex-wrap:wrap; }
+.otp-text-btn { background:transparent; border:none; padding:0; font-size:13px; color:#ffffff80; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:color .15s ease; font-family:inherit; }
+.otp-text-btn:hover:not(:disabled) { color:#fff; }
+.otp-text-btn:disabled { color:#ffffff40; cursor:not-allowed; }
+
+@media (max-width:480px) {
+  .otp-card { padding:26px 20px; }
+  .otp-glow-blob { width:420px; height:420px; }
+}
 
 /* Clause Bank — additive only, reuses .card/.badge/.form-field/.table-wrap/
    .data-table/.empty-inline/.pagination/.case-modal* from the existing
@@ -955,17 +1006,85 @@ textarea:focus {
 .ribbon-color-swatch select { position:absolute; inset:0; opacity:0; cursor:pointer; }
 .ribbon-color-input { width:30px; height:30px; padding:2px; border:1px solid var(--line); border-radius:5px; background:#fff; cursor:pointer; }
 
+/* ---- Home tab ribbon redesign (MS Word-style structure/density) ----
+   Scoped entirely under .ribbon-groups-home so the other 7 ribbon tabs
+   (which share .ribbon-btn/.ribbon-select/.ribbon-group etc. as base
+   classes) are completely unaffected — same colors/typography/spacing
+   tokens as the rest of the app, just denser and Word-like in layout. */
+.ribbon-groups-home { align-items:stretch; }
+.ribbon-groups-home .ribbon-group { padding:3px 10px; gap:4px; }
+.ribbon-groups-home .ribbon-group-rows { display:flex; flex-direction:column; gap:3px; }
+.ribbon-groups-home .ribbon-group-body { gap:3px; }
+.ribbon-groups-home .ribbon-btn {
+  min-width:26px; height:26px; padding:0 6px; border-radius:4px; font-size:11px;
+  display:inline-flex; align-items:center; justify-content:center; gap:4px;
+  transition:background .12s ease, border-color .12s ease;
+}
+.ribbon-groups-home .ribbon-btn-icon { width:26px; padding:0; }
+.ribbon-groups-home .ribbon-btn:hover:not(:disabled) { background:var(--page-secondary); border-color:var(--line-strong); }
+.ribbon-groups-home .ribbon-btn:disabled { opacity:.4; cursor:not-allowed; }
+.ribbon-groups-home .ribbon-btn.active { background:var(--ivory); border-color:var(--blue); color:var(--blue); }
+.ribbon-groups-home .ribbon-select { height:26px; padding:0 6px; font-size:11px; min-width:88px; }
+.ribbon-groups-home .ribbon-select-narrow { min-width:56px; }
+
+.ribbon-menu { position:relative; display:inline-flex; }
+.ribbon-btn-menu { padding-right:4px; }
+.ribbon-btn-menu-text { min-width:auto; padding:0 6px 0 9px; gap:6px; }
+.ribbon-btn-menu-label { font-size:11px; font-weight:600; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ribbon-chevron { opacity:.5; flex-shrink:0; }
+.ribbon-menu-panel {
+  position:fixed; z-index:25; background:#fff; border:1px solid var(--line); border-radius:8px;
+  box-shadow:var(--shadow-card); padding:6px; min-width:180px; max-width:260px;
+  display:flex; flex-direction:column; gap:2px;
+}
+.ribbon-menu-item {
+  display:flex; align-items:center; gap:8px; background:transparent; border:none; text-align:left;
+  padding:7px 10px; font-size:12px; color:var(--ink); border-radius:5px; cursor:pointer; white-space:nowrap; font-family:inherit;
+}
+.ribbon-menu-item:hover:not(:disabled) { background:var(--page-secondary); }
+.ribbon-menu-item.active { background:var(--ivory); color:var(--blue); font-weight:600; }
+.ribbon-menu-item:disabled { color:var(--muted-soft); cursor:not-allowed; }
+.ribbon-menu-divider { border:none; border-top:1px solid var(--line-soft); margin:4px 2px; }
+.ribbon-menu-section { display:flex; flex-direction:column; gap:2px; }
+.ribbon-menu-section + .ribbon-menu-section { margin-top:6px; padding-top:6px; border-top:1px solid var(--line-soft); }
+.ribbon-menu-section-label { font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted-soft); padding:2px 10px 4px; }
+.ribbon-styles-panel { max-height:min(60vh, 360px); overflow-y:auto; }
+.ribbon-style-trigger { min-width:112px; justify-content:space-between; }
+.ribbon-swatch-grid { display:flex; flex-direction:column; gap:6px; padding:2px 2px 4px; }
+.ribbon-swatch-row { display:flex; gap:5px; flex-wrap:wrap; padding:0 4px; }
+.ribbon-swatch { width:20px; height:20px; border-radius:4px; border:1px solid var(--line); cursor:pointer; padding:0; transition:transform .1s ease, border-color .1s ease; }
+.ribbon-swatch:hover { border-color:var(--line-strong); transform:scale(1.1); }
+.ribbon-color-input-hidden { position:absolute; width:0; height:0; opacity:0; pointer-events:none; border:none; }
+
+@media (max-width:700px) {
+  .ribbon-groups-home .ribbon-group { padding:3px 8px; }
+  .ribbon-groups-home .ribbon-select { min-width:72px; }
+}
+
 .document-page-wrap { flex:1; overflow:auto; background:var(--page-secondary); padding:24px 0; }
 .document-page-wrap.layout-landscape .document { max-width:920px; }
 .document-page-wrap.margin-narrow .document { padding:30px 34px; }
 .document-page-wrap.margin-moderate .document { padding:40px 50px; }
+
+/* Real, fixed-height A4/A3/Letter/Legal page frames drawn behind the single
+   live contenteditable (see pagination.js) — one white rectangle per page,
+   absolutely positioned at a measured offset, with a real empty CSS gap
+   between them that content is pushed below via margin spacers rather than
+   a background illusion painted behind free-flowing text. */
+.document-page-bg {
+  position:absolute; left:50%; transform:translateX(-50%); z-index:0;
+  box-shadow:0 5px 22px #0d253d1a; border:1px solid var(--line);
+}
+.document-paginated {
+  position:relative; z-index:1; margin:0 auto; min-height:0; box-shadow:none; border:none; background:transparent;
+}
 .document-region { max-width:690px; margin:0 auto; padding:10px 65px; color:var(--muted); font-size:12px; border-bottom:1px dashed var(--line); }
 .document-footer-region { border-bottom:none; border-top:1px dashed var(--line); }
 .document-status-bar { display:flex; gap:8px; align-items:center; border-top:1px solid var(--line); padding:8px 16px; font-size:12px; color:var(--muted); }
 .document-status-sep { color:var(--muted-soft); }
 .document-loading { padding:60px; text-align:center; color:var(--muted); }
 
-.document .ProseMirror { outline:none; min-height:600px; }
+.document .ProseMirror { outline:none; position:relative; }
 .document .is-empty::before { content:attr(data-placeholder); float:left; height:0; color:var(--muted-soft); pointer-events:none; }
 .document.show-marks .ProseMirror p::after,
 .document.show-marks .ProseMirror h1::after,
