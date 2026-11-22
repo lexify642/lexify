@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useContext, useRef, useState } from "react";
-import { CURRENT_USER } from "@/data/team";
-import { INITIAL_GROUPS, INITIAL_MESSAGES, INITIAL_ONLINE } from "@/data/conversations";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const ChatContext = createContext(null);
 
@@ -22,30 +22,114 @@ function newId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-// Single in-memory store for the whole Communication Hub, same convention as
-// every other module this session (CasesContext/TasksContext/etc.) — resets
-// on reload, one hardcoded session identity (CURRENT_USER). Delivered/seen
-// ticks and the "X is typing…" indicator are timeout-driven, session-local
-// simulations — there's no second real user or realtime backend behind
-// them, so they're illustrative UI behavior only, not a real presence system.
+async function fetchJson(url, options) {
+  const res = await fetch(url, options);
+  const payload = await res.json().catch(() => null);
+  if (!res.ok || !payload) {
+    // Name the request and status when the server didn't send its own
+    // message (e.g. a crash page or an empty 4xx/5xx), so the console says
+    // which call failed instead of a bare "Something went wrong."
+    const method = options?.method || "GET";
+    throw new Error(payload?.error?.message || `${method} ${url} failed (${res.status} ${res.statusText || "no JSON body"}).`);
+  }
+  return payload.data;
+}
+
+// Mirrors lib/chat/serialize.js's serializeMessage — duplicated (not
+// imported) because that module is `server-only` and this runs in the
+// browser, receiving raw postgres_changes payloads over the realtime
+// websocket rather than an API response.
+function messageFromRealtimeRow(row) {
+  return {
+    id: row.id,
+    conversationId: row.conversation_id,
+    senderName: row.sender_name,
+    senderRole: row.sender_role,
+    text: row.text || "",
+    attachmentIds: row.attachment_ids || [],
+    replyToId: row.reply_to_id,
+    forwardedFromId: row.forwarded_from_id,
+    edited: row.edited,
+    deleted: row.deleted,
+    pinnedBy: row.pinned_by || [],
+    starredBy: row.starred_by || [],
+    mentions: row.mentions || [],
+    createdAt: row.created_at,
+    status: row.status,
+  };
+}
+
+// Backed by Supabase (app/api/chat/*) instead of the old useState(seed) —
+// Case Discussion Rooms and Client Chats stay virtual/derived from matters
+// (see conversationUtils.js), only Groups/DMs/Messages are real rows now.
+// Every exported method keeps its original signature and optimistic-local-
+// update behavior, so ChatWorkspace, ConversationView, MessageComposer,
+// MessageBubble, ChatSidebarList, etc. all keep working unmodified. A
+// realtime subscription on `messages` (see 0003_chat_documents.sql's
+// `alter publication supabase_realtime add table messages`) merges in
+// other users' messages live, without a page reload.
 export function ChatProvider({ children }) {
-  const [messages, setMessages] = useState(INITIAL_MESSAGES);
-  const [groups, setGroups] = useState(INITIAL_GROUPS);
+  const currentUser = useCurrentUser();
+  const [messages, setMessages] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [directConversations, setDirectConversations] = useState([]);
-  const [clientChatAssignments, setClientChatAssignments] = useState({
-    "Chevron Inc.": { assignedToName: "R. Sharma", assignedToRole: "Junior Advocate" },
-    "ABC Corp.": { assignedToName: "K. Verma", assignedToRole: "Junior Advocate" },
-  });
-  const [online] = useState(INITIAL_ONLINE);
+  const [clientChatAssignments, setClientChatAssignments] = useState({});
+  const [online] = useState({});
   const [typingBy, setTypingBy] = useState({});
   const [readState, setReadState] = useState({});
+  const [loading, setLoading] = useState(true);
   const typingTimers = useRef({});
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      fetchJson("/api/chat/messages"),
+      fetchJson("/api/chat/groups"),
+      fetchJson("/api/chat/direct"),
+      fetchJson("/api/chat/client-assignments"),
+      fetchJson("/api/chat/read"),
+    ])
+      .then(([msgs, grps, dms, assignments, reads]) => {
+        if (cancelled) return;
+        setMessages(msgs);
+        setGroups(grps);
+        setDirectConversations(dms);
+        setClientChatAssignments(assignments);
+        setReadState(reads);
+      })
+      .catch((err) => console.error("[ChatContext] initial load failed", err))
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    const channel = supabase
+      .channel("messages-realtime")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        const incoming = messageFromRealtimeRow(payload.new);
+        setMessages((prev) => (prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]));
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
+        const incoming = messageFromRealtimeRow(payload.new);
+        setMessages((prev) => prev.map((m) => (m.id === incoming.id ? incoming : m)));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   function otherParticipant(conversationId) {
     const dm = directConversations.find((c) => c.id === conversationId);
-    if (dm) return dm.memberNames.find((n) => n !== CURRENT_USER.name) || null;
+    if (dm) return dm.memberNames.find((n) => n !== currentUser.name) || null;
     const group = groups.find((g) => g.id === conversationId);
-    if (group) return group.memberNames.find((n) => n !== CURRENT_USER.name) || null;
+    if (group) return group.memberNames.find((n) => n !== currentUser.name) || null;
     return null;
   }
 
@@ -54,23 +138,38 @@ export function ChatProvider({ children }) {
   }
 
   function startDirectChat(otherName) {
-    const id = directConversationId(CURRENT_USER.name, otherName);
-    setDirectConversations((prev) => (prev.some((c) => c.id === id) ? prev : [...prev, { id, memberNames: [CURRENT_USER.name, otherName] }]));
+    const id = directConversationId(currentUser.name, otherName);
+    const memberNames = [currentUser.name, otherName];
+    setDirectConversations((prev) => (prev.some((c) => c.id === id) ? prev : [...prev, { id, memberNames }]));
+
+    fetchJson("/api/chat/direct", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, memberNames }) }).catch(
+      (err) => console.error("[ChatContext] startDirectChat failed", err)
+    );
+
     return id;
   }
 
-  function createGroup(name, memberNames) {
-    const entry = { id: newId("group"), name, memberNames: Array.from(new Set([CURRENT_USER.name, ...memberNames])) };
-    setGroups((prev) => [...prev, entry]);
-    return entry;
+  // Async (unlike every other mutation here) — NewChatModal navigates to
+  // the new group by id right after calling this, and a group's id is
+  // server-generated (no deterministic-id trick like DMs have), so the
+  // real id has to be known before that navigation happens.
+  async function createGroup(name, memberNames) {
+    const created = await fetchJson("/api/chat/groups", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, memberNames }),
+    });
+    setGroups((prev) => [...prev, created]);
+    return created;
   }
 
   function sendMessage(conversationId, data) {
+    const tempId = newId("msg");
     const entry = {
-      id: newId("msg"),
+      id: tempId,
       conversationId,
-      senderName: CURRENT_USER.name,
-      senderRole: CURRENT_USER.role,
+      senderName: currentUser.name,
+      senderRole: currentUser.role,
       text: data.text || "",
       attachmentIds: data.attachmentIds || [],
       replyToId: data.replyToId || null,
@@ -85,8 +184,8 @@ export function ChatProvider({ children }) {
     };
     setMessages((prev) => [...prev, entry]);
 
-    setTimeout(() => updateMessageStatus(entry.id, "delivered"), 900);
-    setTimeout(() => updateMessageStatus(entry.id, "seen"), 2200);
+    setTimeout(() => updateMessageStatus(tempId, "delivered"), 900);
+    setTimeout(() => updateMessageStatus(tempId, "seen"), 2200);
 
     const other = otherParticipant(conversationId);
     if (other) {
@@ -97,35 +196,59 @@ export function ChatProvider({ children }) {
       }, 3400);
       typingTimers.current[`${conversationId}-show`] = showTimer;
     }
+
+    fetchJson("/api/chat/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId,
+        text: entry.text,
+        attachmentIds: entry.attachmentIds,
+        replyToId: entry.replyToId,
+        forwardedFromId: entry.forwardedFromId,
+        mentions: entry.mentions,
+      }),
+    })
+      .then((created) => {
+        // The realtime INSERT for this same row may already have arrived
+        // and been ignored (temp id doesn't match) — this replace is what
+        // actually reconciles it, keyed on the temp id we generated above.
+        setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...created, status: m.status } : m)));
+      })
+      .catch((err) => console.error("[ChatContext] sendMessage failed", err));
+
     return entry;
   }
 
+  function patchMessage(id, updates, localUpdater) {
+    setMessages((prev) => prev.map((m) => (m.id === id ? localUpdater(m) : m)));
+    fetchJson(`/api/chat/messages/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updates) }).catch(
+      (err) => console.error("[ChatContext] message update failed", err)
+    );
+  }
+
   function editMessage(id, text) {
-    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, text, edited: true } : m)));
+    patchMessage(id, { text, edited: true }, (m) => ({ ...m, text, edited: true }));
   }
 
   function deleteMessage(id) {
-    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, deleted: true, text: "", attachmentIds: [] } : m)));
+    patchMessage(id, { deleted: true, text: "", attachmentIds: [] }, (m) => ({ ...m, deleted: true, text: "", attachmentIds: [] }));
   }
 
   function togglePin(id) {
-    setMessages((prev) =>
-      prev.map((m) => {
-        if (m.id !== id) return m;
-        const already = m.pinnedBy.includes(CURRENT_USER.name);
-        return { ...m, pinnedBy: already ? m.pinnedBy.filter((n) => n !== CURRENT_USER.name) : [...m.pinnedBy, CURRENT_USER.name] };
-      })
-    );
+    const message = messages.find((m) => m.id === id);
+    if (!message) return;
+    const already = message.pinnedBy.includes(currentUser.name);
+    const pinnedBy = already ? message.pinnedBy.filter((n) => n !== currentUser.name) : [...message.pinnedBy, currentUser.name];
+    patchMessage(id, { pinnedBy }, (m) => ({ ...m, pinnedBy }));
   }
 
   function toggleStar(id) {
-    setMessages((prev) =>
-      prev.map((m) => {
-        if (m.id !== id) return m;
-        const already = m.starredBy.includes(CURRENT_USER.name);
-        return { ...m, starredBy: already ? m.starredBy.filter((n) => n !== CURRENT_USER.name) : [...m.starredBy, CURRENT_USER.name] };
-      })
-    );
+    const message = messages.find((m) => m.id === id);
+    if (!message) return;
+    const already = message.starredBy.includes(currentUser.name);
+    const starredBy = already ? message.starredBy.filter((n) => n !== currentUser.name) : [...message.starredBy, currentUser.name];
+    patchMessage(id, { starredBy }, (m) => ({ ...m, starredBy }));
   }
 
   function forwardMessage(originalId, toConversationId) {
@@ -136,10 +259,18 @@ export function ChatProvider({ children }) {
 
   function reassignClientChat(clientName, memberName, memberRole) {
     setClientChatAssignments((prev) => ({ ...prev, [clientName]: { assignedToName: memberName, assignedToRole: memberRole } }));
+    fetchJson("/api/chat/client-assignments", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientName, assignedToName: memberName, assignedToRole: memberRole }),
+    }).catch((err) => console.error("[ChatContext] reassignClientChat failed", err));
   }
 
   function markRead(conversationId) {
     setReadState((prev) => ({ ...prev, [conversationId]: new Date().toISOString() }));
+    fetchJson("/api/chat/read", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ conversationId }) }).catch(
+      (err) => console.error("[ChatContext] markRead failed", err)
+    );
   }
 
   const value = {
@@ -150,6 +281,7 @@ export function ChatProvider({ children }) {
     online,
     typingBy,
     readState,
+    loading,
     startDirectChat,
     createGroup,
     sendMessage,

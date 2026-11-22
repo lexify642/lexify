@@ -6,7 +6,7 @@ import { useTasks } from "@/components/tasks/TasksContext";
 import { useAppointments } from "@/components/appointments/AppointmentsContext";
 import { buildClientDirectory } from "@/components/cases/clientDirectory";
 import CaseSearchSelect from "@/components/calendar/CaseSearchSelect";
-import { LEGAL_DRAFT_CATEGORIES } from "@/data/legalDrafts";
+import { useLegalDrafts } from "@/components/legal-drafts/LegalDraftsContext";
 import { ATTACHMENT_CATEGORIES } from "@/data/conversations";
 import { useAttachments } from "./AttachmentsContext";
 
@@ -23,6 +23,7 @@ export default function LinkAttachmentModal({ attachment, mode, onClose }) {
   const { tasks } = useTasks();
   const { appointments } = useAppointments();
   const { linkAttachment, updateAttachment } = useAttachments();
+  const { categories: legalDraftCategories } = useLegalDrafts();
   const [query, setQuery] = useState("");
   const [caseNo, setCaseNo] = useState(attachment.linkedCaseNo || "");
   const [category, setCategory] = useState(attachment.category || "");
@@ -54,7 +55,7 @@ export default function LinkAttachmentModal({ attachment, mode, onClose }) {
   const eventOptions = mode === "calendar" ? appointments.filter((a) => a.title.toLowerCase().includes(term)) : [];
   const draftOptions =
     mode === "draft"
-      ? LEGAL_DRAFT_CATEGORIES.filter((d) => d.translations.english.name.toLowerCase().includes(term))
+      ? legalDraftCategories.filter((d) => d.translations.english?.name?.toLowerCase().includes(term))
       : [];
 
   return (

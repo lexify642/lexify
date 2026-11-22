@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { generateHTML } from "@tiptap/html";
 import { useDrafts } from "../../DraftsContext";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
 import { editorExtensions } from "../extensions";
 import { downloadDraftPdf } from "../pdfExport";
 import CompareVersionsModal from "./CompareVersionsModal";
@@ -10,6 +11,7 @@ import { canRestoreVersion } from "../../permissions";
 
 export default function VersionHistoryPanel({ draft, onClose }) {
   const { restoreVersion } = useDrafts();
+  const currentUser = useCurrentUser();
   const [selected, setSelected] = useState([]);
   const [previewVersion, setPreviewVersion] = useState(null);
   const [compareIds, setCompareIds] = useState(null);
@@ -78,7 +80,7 @@ export default function VersionHistoryPanel({ draft, onClose }) {
                       <button type="button" className="btn btn-outline btn-sm" onClick={() => downloadDraftPdf(draft, v)}>
                         Download
                       </button>{" "}
-                      {canRestoreVersion() && (
+                      {canRestoreVersion(currentUser) && (
                         <button type="button" className="btn btn-outline btn-sm" disabled={v.id === draft.activeVersionId} onClick={() => handleRestore(v.id)}>
                           Restore
                         </button>
@@ -119,7 +121,7 @@ export default function VersionHistoryPanel({ draft, onClose }) {
               <button type="button" className="btn btn-outline" onClick={() => setPreviewVersion(null)}>
                 Close
               </button>
-              {canRestoreVersion() && (
+              {canRestoreVersion(currentUser) && (
                 <button type="button" className="btn" onClick={() => handleRestore(previewVersion.id)}>
                   Restore This Version
                 </button>

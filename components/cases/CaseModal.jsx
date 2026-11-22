@@ -66,19 +66,6 @@ export const FORM_CONFIGS = {
       { name: "nextTime", label: "Next Hearing Time", required: true, placeholder: "10:30 AM" },
     ],
   },
-  document: {
-    fields: [
-      { name: "name", label: "Document / draft name", required: true, full: true },
-      {
-        name: "file",
-        label: "Upload new document",
-        type: "file",
-        full: true,
-        accept: ".pdf,.doc,.docx,.xlsx",
-        hint: "Selected filename will be added to this demo case.",
-      },
-    ],
-  },
 };
 
 export default function CaseModal({ modal, initialValues, onClose, onSubmit }) {

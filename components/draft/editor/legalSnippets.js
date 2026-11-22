@@ -1,7 +1,7 @@
 // Legal Document Elements (Insert tab) — real structured paragraphs, pulling
 // real linked-case data when available (via CasesContext) and falling back
 // to an honest editable placeholder rather than fabricating case details.
-import { CURRENT_USER } from "@/data/team";
+import { ROLE_LABELS } from "@/lib/roles";
 
 function escapeHtml(text) {
   return (text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -46,8 +46,9 @@ export function signatureLineSnippet() {
   return `<p>_______________________</p>`;
 }
 
-export function advocateSignatureSnippet() {
-  return `<p data-legal-style="signature-block">Advocate for the Plaintiff/Petitioner<br/>${escapeHtml(CURRENT_USER.name)}<br/>${escapeHtml(CURRENT_USER.role)}</p>`;
+export function advocateSignatureSnippet(currentUser) {
+  const roleLabel = ROLE_LABELS[currentUser?.role] || currentUser?.role || "";
+  return `<p data-legal-style="signature-block">Advocate for the Plaintiff/Petitioner<br/>${escapeHtml(currentUser?.name || "")}<br/>${escapeHtml(roleLabel)}</p>`;
 }
 
 export function clientSignatureSnippet(linkedCase) {

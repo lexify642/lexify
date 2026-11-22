@@ -1,36 +1,73 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  CLAUSES,
-  DEFAULT_SELECTIONS,
-  DEFAULT_EXTRA_VALUES,
-  PLAYBOOK,
-  PRESETS,
-  RECITALS_HTML,
-  CLOSING_HTML,
-} from "@/data/partnershipDeed";
 import { useDrafts } from "./DraftsContext";
 import styles from "./PartnershipDeedEngine.module.css";
+
+async function fetchJson(url, options) {
+  const res = await fetch(url, options);
+  const payload = await res.json().catch(() => null);
+  if (!res.ok || !payload) {
+    throw new Error(payload?.error?.message || "Something went wrong.");
+  }
+  return payload.data;
+}
 
 function optionLabel(clause, optionId) {
   return clause.options.find((option) => option.id === optionId)?.label ?? clause.options[0].label;
 }
 
-function playbookFor(clauseId) {
-  return PLAYBOOK.find((entry) => entry.clauseId === clauseId);
+// Replaces data/partnershipDeed.js's old buildText(optionLabel, extraValue)
+// JS functions — every one of the 10 was pure string interpolation with no
+// branching (verified before the migration), so it converts cleanly to a
+// stored template with {{optionLabel}}/{{extraValue}} placeholder tokens
+// (see scripts/seed-partnership-deed.mjs) plus this substitution instead of
+// a function call.
+function interpolate(template, values) {
+  return (template || "").replace(/\{\{(\w+)\}\}/g, (_, key) => (values[key] ?? ""));
 }
 
 export default function PartnershipDeedEngine({ active }) {
   const router = useRouter();
   const { addDraft } = useDrafts();
-  const [selections, setSelections] = useState(DEFAULT_SELECTIONS);
-  const [extraValues, setExtraValues] = useState(DEFAULT_EXTRA_VALUES);
+  const [config, setConfig] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selections, setSelections] = useState({});
+  const [extraValues, setExtraValues] = useState({});
   const [downloaded, setDownloaded] = useState(false);
-  const [activeClauseId, setActiveClauseId] = useState(CLAUSES[0].id);
+  const [activeClauseId, setActiveClauseId] = useState(null);
   const sectionRefs = useRef({});
-  const activeClause = CLAUSES.find((clause) => clause.id === activeClauseId);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchJson("/api/partnership-deed")
+      .then((data) => {
+        if (cancelled) return;
+        setConfig(data);
+        setSelections(data.defaultSelections);
+        setExtraValues(data.defaultExtraValues);
+        if (data.clauses.length) setActiveClauseId(data.clauses[0].id);
+      })
+      .catch((err) => console.error("[PartnershipDeedEngine] load failed", err))
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading || !config) {
+    return (
+      <section className={`library-view${active ? " active" : ""}`} data-library-view="generator">
+        <div className="empty-inline">Loading Partnership Deed configuration…</div>
+      </section>
+    );
+  }
+
+  const { clauses: CLAUSES, presets: PRESETS, recitalsHtml: RECITALS_HTML, closingHtml: CLOSING_HTML } = config;
+  const activeClause = CLAUSES.find((clause) => clause.id === activeClauseId) || CLAUSES[0];
 
   function setOption(clauseId, optionId) {
     setSelections((prev) => ({ ...prev, [clauseId]: optionId }));
@@ -48,12 +85,14 @@ export default function PartnershipDeedEngine({ active }) {
     sectionRefs.current[clauseId]?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  function clauseText(clause) {
+    const label = optionLabel(clause, selections[clause.id]);
+    const extraValue = clause.extraField ? extraValues[clause.extraField.name] : undefined;
+    return interpolate(clause.textTemplate, { optionLabel: label, extraValue });
+  }
+
   function buildDeedBodyHtml() {
-    const clauseHtml = CLAUSES.map((clause) => {
-      const label = optionLabel(clause, selections[clause.id]);
-      const extraValue = clause.extraField ? extraValues[clause.extraField.name] : undefined;
-      return `<h4>${clause.heading}</h4><p>${clause.buildText(label, extraValue)}</p>`;
-    }).join("");
+    const clauseHtml = CLAUSES.map((clause) => `<h4>${clause.heading}</h4><p>${clauseText(clause)}</p>`).join("");
     return `${RECITALS_HTML}${clauseHtml}${CLOSING_HTML}`;
   }
 
@@ -166,7 +205,7 @@ ${buildDeedBodyHtml()}
                 <div className={styles.extraField}>
                   <label>{activeClause.extraField.label}</label>
                   <input
-                    value={extraValues[activeClause.extraField.name]}
+                    value={extraValues[activeClause.extraField.name] || ""}
                     onChange={(event) => setExtra(activeClause.extraField.name, event.target.value)}
                   />
                 </div>
@@ -194,51 +233,45 @@ ${buildDeedBodyHtml()}
 
             <article className={styles.docPreview}>
               <div dangerouslySetInnerHTML={{ __html: RECITALS_HTML }} />
-              {CLAUSES.map((clause) => {
-                const entry = playbookFor(clause.id);
-                return (
-                  <div
-                    key={clause.id}
-                    ref={(el) => {
-                      sectionRefs.current[clause.id] = el;
-                    }}
-                  >
-                    <h4>{clause.heading}</h4>
-                    <p>{clause.buildText(optionLabel(clause, selections[clause.id]), clause.extraField ? extraValues[clause.extraField.name] : undefined)}</p>
-                    {entry && (
-                      <div className={styles.inlineRisk}>
-                        <strong>
-                          CLAUSE {clause.number}: {clause.title.toUpperCase()}
-                        </strong>
-                        <p>
-                          <b>Risk Vector Target:</b> {entry.impact}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {CLAUSES.map((clause) => (
+                <div
+                  key={clause.id}
+                  ref={(el) => {
+                    sectionRefs.current[clause.id] = el;
+                  }}
+                >
+                  <h4>{clause.heading}</h4>
+                  <p>{clauseText(clause)}</p>
+                  {clause.playbook && (
+                    <div className={styles.inlineRisk}>
+                      <strong>
+                        CLAUSE {clause.number}: {clause.title.toUpperCase()}
+                      </strong>
+                      <p>
+                        <b>Risk Vector Target:</b> {clause.playbook.impact}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
               <div dangerouslySetInnerHTML={{ __html: CLOSING_HTML }} />
             </article>
           </div>
 
           <div className={styles.playbook}>
             <div className={styles.playbookHead}>⚑ TACTICAL STRATEGIC COUNTER-PLAYBOOK</div>
-            {PLAYBOOK.map((entry) => {
-              const clause = CLAUSES.find((c) => c.id === entry.clauseId);
-              return (
-                <div className={styles.playbookCard} key={entry.clauseId}>
-                  <div className={styles.playbookCardHead}>
-                    <strong>Clause {clause.number}</strong>
-                    <span className={styles.activeBadge}>ACTIVE</span>
-                  </div>
-                  <div className={styles.impactLabel}>
-                    <b>Impact Matrix:</b> {entry.impact}
-                  </div>
-                  <div className={styles.guidanceBox}>{entry.guidance}</div>
+            {CLAUSES.filter((clause) => clause.playbook).map((clause) => (
+              <div className={styles.playbookCard} key={clause.id}>
+                <div className={styles.playbookCardHead}>
+                  <strong>Clause {clause.number}</strong>
+                  <span className={styles.activeBadge}>ACTIVE</span>
                 </div>
-              );
-            })}
+                <div className={styles.impactLabel}>
+                  <b>Impact Matrix:</b> {clause.playbook.impact}
+                </div>
+                <div className={styles.guidanceBox}>{clause.playbook.guidance}</div>
+              </div>
+            ))}
           </div>
         </div>
 

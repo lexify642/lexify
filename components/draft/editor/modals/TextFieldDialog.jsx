@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 
-export default function TextFieldDialog({ eyebrow, title, label, placeholder, onClose, onSubmit }) {
-  const [value, setValue] = useState("");
+export default function TextFieldDialog({ eyebrow, title, label, placeholder, initialValue = "", submitLabel = "Insert", onClose, onSubmit }) {
+  const [value, setValue] = useState(initialValue);
 
   return (
     <div className="case-modal-backdrop show" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -36,7 +36,7 @@ export default function TextFieldDialog({ eyebrow, title, label, placeholder, on
               onClose();
             }}
           >
-            Insert
+            {submitLabel}
           </button>
         </div>
       </div>

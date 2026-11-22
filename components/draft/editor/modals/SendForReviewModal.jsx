@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { TEAM_MEMBERS, CURRENT_USER } from "@/data/team";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
+import { useStaffDirectory } from "@/components/staff/StaffDirectoryContext";
+import { ROLE_LABELS } from "@/lib/roles";
 import { useCases } from "@/components/cases/CasesContext";
 import { buildClientDirectory } from "@/components/cases/clientDirectory";
 import { useDrafts } from "../../DraftsContext";
@@ -28,10 +30,12 @@ export default function SendForReviewModal({ draft, onClose, initialFormat = "pd
   const { cases } = useCases();
   const { getLiveEditor, saveVersion, getActiveVersion } = useDrafts();
   const { createReviewRequest } = useDraftReview();
+  const currentUser = useCurrentUser();
+  const { staff } = useStaffDirectory();
 
   const linkedCase = cases.find((c) => c.no === draft.linkedCaseNo) || null;
   const clientDirectory = buildClientDirectory(cases);
-  const teamOptions = TEAM_MEMBERS.filter((m) => m.name !== CURRENT_USER.name);
+  const teamOptions = staff.filter((p) => p.full_name !== currentUser.name).map((p) => ({ id: p.id, name: p.full_name, role: p.role }));
 
   const [recipientMode, setRecipientMode] = useState("custom");
   const [recipientName, setRecipientName] = useState("");
@@ -73,47 +77,32 @@ export default function SendForReviewModal({ draft, onClose, initialFormat = "pd
     const version = editor ? saveVersion(draft.id, editor.getJSON(), "Sent for Review") || getActiveVersion(draft) : getActiveVersion(draft);
 
     const payload = {
+      draftId: draft.id,
+      versionId: version.id,
+      caseNo: draft.linkedCaseNo,
       to: [recipientEmail.trim()],
       cc: parseEmailList(cc),
       bcc: parseEmailList(bcc),
+      recipients: [{ type: recipientMode, name: recipientName || recipientEmail, email: recipientEmail.trim() }],
       subject: subject.trim() || `Review Request: ${draft.title}`,
       message,
       instructions,
       format,
       draftTitle: draft.title,
-      senderName: CURRENT_USER.name,
       deadline,
+      allowComments,
+      allowTrackChanges,
+      allowEditing,
+      requireApproval,
     };
     if (format === "pdf" || format === "both") payload.pdfBase64 = draftPdfBase64(draft, version);
     if (format === "editable" || format === "both") payload.wordHtml = draftWordHtml(draft, version);
 
     try {
-      const res = await fetch("/api/draft-review/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const json = await res.json();
-      if (!res.ok || json.error) {
-        throw new Error(json.error?.message || "Could not send the review request.");
-      }
-      createReviewRequest({
-        draftId: draft.id,
-        versionId: version.id,
-        caseNo: draft.linkedCaseNo,
-        recipients: [{ type: recipientMode, name: recipientName || recipientEmail, email: recipientEmail.trim() }],
-        cc: payload.cc,
-        bcc: payload.bcc,
-        subject: payload.subject,
-        message,
-        format,
-        deadline,
-        instructions,
-        allowComments,
-        allowTrackChanges,
-        allowEditing,
-        requireApproval,
-      });
+      // One call: sends the email AND persists the review request
+      // server-side (see app/api/draft-review/send/route.js) — no separate
+      // client-side DB write anymore.
+      await createReviewRequest(payload);
       setStatus("sent");
       setTimeout(onClose, 1200);
     } catch (err) {
@@ -135,7 +124,7 @@ export default function SendForReviewModal({ draft, onClose, initialFormat = "pd
           </button>
         </div>
         <div className="modal-body">
-          {!canSendForReview() ? (
+          {!canSendForReview(currentUser) ? (
             <div className="empty-inline">You don&apos;t have permission to send drafts for review.</div>
           ) : status === "sent" ? (
             <div className="empty-inline">Review request sent to {recipientEmail}.</div>
@@ -160,7 +149,7 @@ export default function SendForReviewModal({ draft, onClose, initialFormat = "pd
                     <option value="">Select team member…</option>
                     {teamOptions.map((m) => (
                       <option key={m.id} value={m.name}>
-                        {m.name} — {m.role}
+                        {m.name} — {ROLE_LABELS[m.role] || m.role}
                       </option>
                     ))}
                   </select>
@@ -251,7 +240,7 @@ export default function SendForReviewModal({ draft, onClose, initialFormat = "pd
             </>
           )}
         </div>
-        {status !== "sent" && canSendForReview() && (
+        {status !== "sent" && canSendForReview(currentUser) && (
           <div className="modal-foot">
             <button type="button" className="btn btn-outline" onClick={onClose}>
               Cancel

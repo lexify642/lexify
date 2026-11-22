@@ -1,10 +1,10 @@
 "use client";
 
-import TaskFormFields, { DEFAULT_ASSIGNED_BY } from "./TaskFormFields";
+import TaskFormFields from "./TaskFormFields";
 
 export function readTaskForm(form, existingAttachments = []) {
   const fd = new FormData(form);
-  const assignedBy = fd.get("assignedBy") || DEFAULT_ASSIGNED_BY;
+  const assignedBy = fd.get("assignedBy") || "";
   const assignedTo = fd.get("assignedTo") || "";
   const [assignedByName, assignedByRole] = assignedBy.split(" — ");
   const [assignedToName, assignedToRole] = assignedTo ? assignedTo.split(" — ") : [null, null];

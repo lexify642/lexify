@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTasks } from "./TasksContext";
 import { useCases } from "@/components/cases/CasesContext";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
 import TaskModal from "./TaskModal";
 import { canManageTask, canUpdateStatus } from "./permissions";
 import { TASK_STATUSES, toneForTaskStatus, toneForPriority } from "@/data/tasks";
@@ -23,6 +24,7 @@ export default function TaskDetailsWorkspace() {
   const router = useRouter();
   const { tasks, updateTask, deleteTask, updateTaskStatus, addComment, addAttachment } = useTasks();
   const { cases } = useCases();
+  const currentUser = useCurrentUser();
   const [editOpen, setEditOpen] = useState(false);
   const [statusDraft, setStatusDraft] = useState("");
   const [statusNote, setStatusNote] = useState("");
@@ -40,8 +42,8 @@ export default function TaskDetailsWorkspace() {
     );
   }
 
-  const manage = canManageTask();
-  const updatable = canUpdateStatus(task);
+  const manage = canManageTask(currentUser);
+  const updatable = canUpdateStatus(task, currentUser);
 
   function handleDelete() {
     if (!window.confirm("Delete this task?")) return;
@@ -187,7 +189,7 @@ export default function TaskDetailsWorkspace() {
               )}
             </div>
           ) : (
-            <div className="empty-inline">Only {task.assignedToName} or an admin can update this task's status.</div>
+            <div className="empty-inline">Only {task.assignedToName} or an admin can update this task&apos;s status.</div>
           )}
         </div>
 

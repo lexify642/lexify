@@ -1,48 +1,47 @@
-import { CURRENT_USER } from "@/data/team";
+import { MANAGER_ROLES } from "@/lib/roles";
 
-// Same MANAGER_ROLES-against-CURRENT_USER pattern as components/chat/
-// permissions.js and components/tasks/permissions.js. This app has no
-// multi-user auth (CURRENT_USER is the one signed-in identity, always
-// "Senior Advocate" today) and no "Client"/view-only user actually exists —
-// but the rule itself is real and correctly scoped for when it does, same
-// convention as the two existing permission files.
-const MANAGER_ROLES = ["Senior Advocate", "Admin"];
-const VIEW_ONLY_ROLES = ["Client"];
+// Same pattern as components/tasks/permissions.js and components/chat/
+// permissions.js — real rules, now evaluated against the real signed-in
+// user (useCurrentUser()) instead of the hardcoded CURRENT_USER. A
+// "Client" view-only role is modeled here (VIEW_ONLY_ROLES) even though no
+// real client-portal login exists yet — same forward-looking scoping the
+// other permission files already use.
+const VIEW_ONLY_ROLES = ["client"];
 
-export function canManageDraft() {
-  return MANAGER_ROLES.includes(CURRENT_USER.role);
+export function canManageDraft(currentUser) {
+  return MANAGER_ROLES.includes(currentUser?.role);
 }
 
-export function canEditDraft() {
-  return !VIEW_ONLY_ROLES.includes(CURRENT_USER.role);
+export function canEditDraft(currentUser) {
+  return !VIEW_ONLY_ROLES.includes(currentUser?.role);
 }
 
 export function canComment() {
   return true;
 }
 
-export function canDeleteComment(thread) {
-  return canManageDraft() || thread?.author === CURRENT_USER.name;
+export function canDeleteComment(thread, currentUser) {
+  return canManageDraft(currentUser) || thread?.author === currentUser?.name;
 }
 
 export function canReview() {
   return true;
 }
 
-export function canApprove() {
-  return canManageDraft();
+export function canApprove(currentUser) {
+  return canManageDraft(currentUser);
 }
 
-export function canSendForReview() {
-  return !VIEW_ONLY_ROLES.includes(CURRENT_USER.role);
+export function canSendForReview(currentUser) {
+  return !VIEW_ONLY_ROLES.includes(currentUser?.role);
 }
 
-export function canRestoreVersion() {
-  return canManageDraft();
+export function canRestoreVersion(currentUser) {
+  return canManageDraft(currentUser);
 }
 
-export function canAcceptRejectChanges() {
-  return canManageDraft();
+export function canAcceptRejectChanges(currentUser) {
+  return canManageDraft(currentUser);
 }
 
 export function canDownloadDraft() {

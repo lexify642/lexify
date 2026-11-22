@@ -1,20 +1,19 @@
-import { CURRENT_USER } from "@/data/team";
+import { MANAGER_ROLES } from "@/lib/roles";
 
-const MANAGER_ROLES = ["Senior Advocate", "Admin"];
-
-// Same pattern as components/tasks/permissions.js — real rules evaluated
-// against CURRENT_USER (the app's one hardcoded session identity, since
-// there's no real multi-user auth here), not hardcoded true/false.
-export function canManageChat() {
-  return MANAGER_ROLES.includes(CURRENT_USER.role);
+// Same pattern as components/tasks/permissions.js — real rules, now
+// evaluated against the real signed-in user (useCurrentUser()) instead of
+// the hardcoded CURRENT_USER. Every function here takes currentUser
+// explicitly since callers are always inside a component that already has it.
+export function canManageChat(currentUser) {
+  return MANAGER_ROLES.includes(currentUser?.role);
 }
 
-export function canReassignClientChat() {
-  return canManageChat();
+export function canReassignClientChat(currentUser) {
+  return canManageChat(currentUser);
 }
 
-export function canDeleteMessage(message) {
-  return canManageChat() || message.senderName === CURRENT_USER.name;
+export function canDeleteMessage(message, currentUser) {
+  return canManageChat(currentUser) || message.senderName === currentUser?.name;
 }
 
 // A case's discussion room is open to whoever is actually working the case:
@@ -30,7 +29,7 @@ export function accessListForCase(caseData, tasks) {
   return Array.from(names);
 }
 
-export function canAccessCaseRoom(caseData, tasks) {
-  if (canManageChat()) return true;
-  return accessListForCase(caseData, tasks).includes(CURRENT_USER.name);
+export function canAccessCaseRoom(caseData, tasks, currentUser) {
+  if (canManageChat(currentUser)) return true;
+  return accessListForCase(caseData, tasks).includes(currentUser?.name);
 }

@@ -1,14 +1,14 @@
 "use client";
 
-import clauseData from "@/data/clauses.json";
 import { useClauseWorkspace } from "../ClauseWorkspaceContext";
-
-const clauseById = new Map(clauseData.map((c) => [c.id, c]));
+import { useClauses } from "../ClausesContext";
 
 export default function RecentlyUsedStrip({ onView }) {
   const { recentlyUsed } = useClauseWorkspace();
+  const { clauses } = useClauses();
   if (recentlyUsed.length === 0) return null;
 
+  const clauseById = new Map(clauses.map((c) => [c.id, c]));
   const items = [];
   const seen = new Set();
   for (const entry of recentlyUsed) {

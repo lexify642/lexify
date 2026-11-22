@@ -32,6 +32,7 @@ async function postJson(url, body) {
 function friendlyError(message) {
   const m = (message || "").toLowerCase();
   if (m.includes("not configured")) return message;
+  if (m.includes("administrator") || m.includes("deactivated")) return message;
   if (m.includes("rate limit") || m.includes("too many")) return "Too many attempts. Please wait.";
   if (m.includes("incorrect") || m.includes("expired") || m.includes("invalid")) {
     return "Incorrect or expired code. Try again or request a new one.";
@@ -155,7 +156,7 @@ export default function LoginWorkspace() {
                 </button>
               </form>
 
-              <p className="otp-footnote">New here? No problem — we&apos;ll create your account automatically.</p>
+              <p className="otp-footnote">Don&apos;t have access yet? Ask your firm administrator to add you.</p>
             </div>
           ) : (
             <div className="otp-step" key="otp" data-direction={direction}>

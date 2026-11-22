@@ -1,10 +1,9 @@
-// Legal Drafts / Legal Formats directory — mock data shaped so it can later
-// be swapped for a real database/API without changing any component code.
-// Every category (and every affidavit sub-type) carries a `translations`
-// object keyed by language id, so switching language changes ALL visible
-// content, not just a badge. `downloadUrl`/`previewUrl` are real fields on
-// every downloadable item — placeholders today, wired to the actual
-// download/preview actions, not faked.
+// LEGAL_DRAFT_CATEGORIES below is now seed data only (see
+// scripts/seed-drafting-library.mjs) — the app itself reads categories from
+// Supabase via components/legal-drafts/LegalDraftsContext.jsx. The pure
+// helpers here (categoryName, categoryDescription, subTypeName,
+// translatePracticeArea, t, getCategoryBySlug) still run against whatever's
+// actually loaded, real or seed.
 
 export const LANGUAGES = [
   { id: "english", label: "English" },
@@ -1093,8 +1092,12 @@ export const LEGAL_DRAFT_CATEGORIES = [
   },
 ];
 
-export function getCategoryBySlug(slug) {
-  return LEGAL_DRAFT_CATEGORIES.find((c) => c.slug === slug) ?? null;
+// Takes `categories` explicitly (rather than closing over the static
+// LEGAL_DRAFT_CATEGORIES array below, which is now seed data only — see
+// components/legal-drafts/LegalDraftsContext.jsx) so it works against
+// whatever's actually loaded from Supabase.
+export function getCategoryBySlug(categories, slug) {
+  return categories.find((c) => c.slug === slug) ?? null;
 }
 
 export function categoryName(category, language) {

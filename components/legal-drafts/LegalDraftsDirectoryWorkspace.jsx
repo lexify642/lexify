@@ -6,12 +6,12 @@ import {
   LANGUAGES,
   NATIVE_LANGUAGE_NAMES,
   PRACTICE_AREAS,
-  LEGAL_DRAFT_CATEGORIES,
   categoryName,
   categoryDescription,
   translatePracticeArea,
   t,
 } from "@/data/legalDrafts";
+import { useLegalDrafts } from "./LegalDraftsContext";
 import LegalDraftCard from "./LegalDraftCard";
 
 const LANGUAGE_IDS = LANGUAGES.map((l) => l.id);
@@ -19,6 +19,7 @@ const LANGUAGE_IDS = LANGUAGES.map((l) => l.id);
 export default function LegalDraftsDirectoryWorkspace() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { categories } = useLegalDrafts();
   const urlLanguage = searchParams.get("language");
   const initialLanguage = LANGUAGE_IDS.includes(urlLanguage) ? urlLanguage : "english";
 
@@ -36,7 +37,7 @@ export default function LegalDraftsDirectoryWorkspace() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return LEGAL_DRAFT_CATEGORIES.filter((c) => {
+    return categories.filter((c) => {
       if (!c.languages.includes(language)) return false;
       if (practiceArea && c.practiceArea !== practiceArea) return false;
       if (term) {
@@ -46,7 +47,7 @@ export default function LegalDraftsDirectoryWorkspace() {
       }
       return true;
     });
-  }, [language, search, practiceArea]);
+  }, [categories, language, search, practiceArea]);
 
   const nativeLanguageLabel = NATIVE_LANGUAGE_NAMES[language];
 

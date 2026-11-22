@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { displayDate } from "./utils";
 import { toneForTaskStatus } from "@/data/tasks";
@@ -10,6 +10,7 @@ import { useChat, caseConversationId } from "@/components/chat/ChatContext";
 import { useAttachments } from "@/components/chat/AttachmentsContext";
 import { buildConversations } from "@/components/chat/conversationUtils";
 import { canAccessCaseRoom } from "@/components/chat/permissions";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
 import { formatFileSize } from "@/data/attachments";
 import AttachFileMenu from "@/components/chat/AttachFileMenu";
 import TaskModal from "@/components/tasks/TaskModal";
@@ -37,7 +38,7 @@ const TASK_GROUPS = [
   { key: "completed", label: "Completed Tasks", match: (status) => status === "Completed" },
 ];
 
-export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onViewDocument, onEditCase, initialTab }) {
+export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onEditCase, initialTab }) {
   const [activeTab, setActiveTab] = useState(TABS.some((t) => t.key === initialTab) ? initialTab : TABS[0].key);
   const [expandedId, setExpandedId] = useState(null);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
@@ -45,7 +46,10 @@ export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onView
   const { tasks, addTask } = useTasks();
   const { cases } = useCases();
   const { groups, directConversations, clientChatAssignments } = useChat();
-  const { attachments } = useAttachments();
+  const currentUser = useCurrentUser();
+  const { attachments, addAttachment } = useAttachments();
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const docFileInputRef = useRef(null);
   const { collections } = useClauseWorkspace();
   const router = useRouter();
   const { drafts, setActiveDraftId } = useDrafts();
@@ -61,14 +65,28 @@ export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onView
     setActiveDraftId(draftId);
     router.push("/draft");
   }
+
+  async function handleDocumentFileChange(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setUploadingDoc(true);
+    try {
+      await addAttachment(file, { linkedCaseNo: caseData.no });
+    } catch (err) {
+      window.alert(err.message || "Something went wrong while uploading this document.");
+    } finally {
+      setUploadingDoc(false);
+    }
+  }
   const conversations = useMemo(
-    () => buildConversations({ cases, tasks, groups, directConversations, clientChatAssignments }),
-    [cases, tasks, groups, directConversations, clientChatAssignments]
+    () => buildConversations({ cases, tasks, groups, directConversations, clientChatAssignments, currentUser }),
+    [cases, tasks, groups, directConversations, clientChatAssignments, currentUser]
   );
 
   if (!caseData) return null;
 
-  const hasDiscussionRoom = canAccessCaseRoom(caseData, tasks);
+  const hasDiscussionRoom = canAccessCaseRoom(caseData, tasks, currentUser);
 
   function handleAddTask(data) {
     addTask(data);
@@ -283,29 +301,44 @@ export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onView
         {activeTab === "documents" && (
           <section className="drawer-section">
             <div className="drawer-section-title">
-              <h3>Linked drafts &amp; documents</h3>
-              <button type="button" className="link" onClick={() => onAdd("document")}>
-                + Add document
+              <h3>Documents</h3>
+              <button type="button" className="link" onClick={() => docFileInputRef.current?.click()} disabled={uploadingDoc}>
+                {uploadingDoc ? "Uploading…" : "+ Add document"}
               </button>
+              <input ref={docFileInputRef} type="file" hidden onChange={handleDocumentFileChange} />
             </div>
-            <div className="document-chips">
-              {caseData.docs.map((doc, i) => (
-                <span key={i}>
-                  ▧ {doc}
-                  <span className="mini-actions">
-                    <button type="button" onClick={() => onViewDocument(doc)}>
-                      View
-                    </button>
-                    <button type="button" onClick={() => onEdit("document", i)}>
-                      Edit
-                    </button>
-                    <button type="button" className="danger-action" onClick={() => onDelete("document", i)}>
-                      Delete
-                    </button>
-                  </span>
-                </span>
-              ))}
-            </div>
+            <p className="page-subtitle" style={{ margin: "0 0 12px" }}>
+              Every file here — uploaded directly, or shared from a case Discussion Room chat — is the same real
+              record, stored once.
+              {hasDiscussionRoom && (
+                <>
+                  {" "}
+                  <Link className="link" href={`/chat?c=${caseConversationId(caseData.no)}`}>
+                    Open Discussion Room →
+                  </Link>
+                </>
+              )}
+            </p>
+            {linkedAttachments.length ? (
+              <div className="case-linked-attachments">
+                {linkedAttachments.map((a) => (
+                  <div className="chat-linked-row shared-doc-row" key={a.id}>
+                    <a href={a.objectUrl || "#"} download={a.name} className="shared-doc-link">
+                      <strong>{a.name}</strong>
+                      <span>
+                        {a.mimeCategory.toUpperCase()} · {formatFileSize(a.size)} · {a.category || "Uncategorized"} · Uploaded by{" "}
+                        {a.uploadedBy}
+                      </span>
+                    </a>
+                    <AttachFileMenuButton attachment={a} conversations={conversations} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-inline">
+                No documents yet — add one above, or use "Save to Case" on any chat attachment.
+              </div>
+            )}
 
             <div className="drawer-section-title" style={{ marginTop: 22 }}>
               <h3>Draft Editor Documents</h3>
@@ -330,35 +363,6 @@ export default function CaseOverview({ caseData, onAdd, onEdit, onDelete, onView
               </div>
             ) : (
               <div className="empty-inline">No drafts linked to this case yet — link a case when creating a draft.</div>
-            )}
-
-            <div className="drawer-section-title" style={{ marginTop: 22 }}>
-              <h3>Shared from Communication Hub</h3>
-              {hasDiscussionRoom && (
-                <Link className="link" href={`/chat?c=${caseConversationId(caseData.no)}`}>
-                  Open Discussion Room →
-                </Link>
-              )}
-            </div>
-            {linkedAttachments.length ? (
-              <div className="case-linked-attachments">
-                {linkedAttachments.map((a) => (
-                  <div className="chat-linked-row shared-doc-row" key={a.id}>
-                    <a href={a.objectUrl || "#"} download={a.name} className="shared-doc-link">
-                      <strong>{a.name}</strong>
-                      <span>
-                        {a.mimeCategory.toUpperCase()} · {formatFileSize(a.size)} · {a.category || "Uncategorized"} · Uploaded by{" "}
-                        {a.uploadedBy}
-                      </span>
-                    </a>
-                    <AttachFileMenuButton attachment={a} conversations={conversations} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-inline">
-                No files saved from the Communication Hub yet — use "Save to Case" or "Attach to Case" on any chat attachment.
-              </div>
             )}
 
             <div className="drawer-section-title" style={{ marginTop: 22 }}>

@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { TEAM_MEMBERS, CURRENT_USER } from "@/data/team";
 import { PRIORITY_OPTIONS, REMINDER_OPTIONS } from "@/data/tasks";
 import { useCases } from "@/components/cases/CasesContext";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
+import { useStaffDirectory } from "@/components/staff/StaffDirectoryContext";
+import { ROLE_LABELS } from "@/lib/roles";
 import CaseSearchSelect from "@/components/calendar/CaseSearchSelect";
-
-const ASSIGNEE_OPTIONS = TEAM_MEMBERS.map((m) => `${m.name} — ${m.role}`);
-export const DEFAULT_ASSIGNED_BY = `${CURRENT_USER.name} — ${CURRENT_USER.role}`;
 
 // Plain field-set (no <form>/backdrop of its own), same split used for
 // AppointmentFormFields — mounted inside TaskModal (standalone create/edit)
@@ -18,12 +17,16 @@ export const DEFAULT_ASSIGNED_BY = `${CURRENT_USER.name} — ${CURRENT_USER.role
 // complete.
 export default function TaskFormFields({ defaultValues, presetCaseNo }) {
   const { cases } = useCases();
+  const currentUser = useCurrentUser();
+  const { staff } = useStaffDirectory();
   const [mode, setMode] = useState(defaultValues?.caseNo || presetCaseNo ? "existing" : "independent");
   const [selectedCaseNo, setSelectedCaseNo] = useState(defaultValues?.caseNo ?? presetCaseNo ?? "");
   const [reminder, setReminder] = useState(defaultValues?.reminder ?? "None");
 
+  const assigneeOptions = staff.map((p) => `${p.full_name} — ${ROLE_LABELS[p.role] || p.role}`);
   const selectedCase = cases.find((c) => c.no === selectedCaseNo);
-  const defaultAssignedBy = defaultValues?.assignedByName ? `${defaultValues.assignedByName} — ${defaultValues.assignedByRole}` : DEFAULT_ASSIGNED_BY;
+  const defaultAssignedByFallback = `${currentUser.name} — ${ROLE_LABELS[currentUser.role] || currentUser.role}`;
+  const defaultAssignedBy = defaultValues?.assignedByName ? `${defaultValues.assignedByName} — ${defaultValues.assignedByRole}` : defaultAssignedByFallback;
   const defaultAssignedTo = defaultValues?.assignedToName ? `${defaultValues.assignedToName} — ${defaultValues.assignedToRole}` : "";
 
   return (
@@ -90,7 +93,7 @@ export default function TaskFormFields({ defaultValues, presetCaseNo }) {
         <label className="form-field">
           Assigned by
           <select name="assignedBy" defaultValue={defaultAssignedBy}>
-            {ASSIGNEE_OPTIONS.map((o) => (
+            {assigneeOptions.map((o) => (
               <option key={o}>{o}</option>
             ))}
           </select>
@@ -101,7 +104,7 @@ export default function TaskFormFields({ defaultValues, presetCaseNo }) {
             <option value="" disabled>
               Select a person
             </option>
-            {ASSIGNEE_OPTIONS.map((o) => (
+            {assigneeOptions.map((o) => (
               <option key={o}>{o}</option>
             ))}
           </select>

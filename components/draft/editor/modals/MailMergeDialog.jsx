@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { TEAM_MEMBERS, CURRENT_USER } from "@/data/team";
 import { useCases } from "@/components/cases/CasesContext";
 import { buildClientDirectory } from "@/components/cases/clientDirectory";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
+import { useStaffDirectory } from "@/components/staff/StaffDirectoryContext";
+import { ROLE_LABELS } from "@/lib/roles";
 import { useDrafts } from "../../DraftsContext";
 import { detectMergeFields, mergeContentJson, mergeText, valuesForTeamMember, valuesForClient } from "../mailMerge";
 import { draftPdfBase64 } from "../pdfExport";
@@ -11,18 +13,22 @@ import { draftPdfBase64 } from "../pdfExport";
 export default function MailMergeDialog({ draft, editor, onClose }) {
   const { cases } = useCases();
   const { getActiveVersion } = useDrafts();
+  const currentUser = useCurrentUser();
+  const { staff } = useStaffDirectory();
   const activeVersion = getActiveVersion(draft);
   const currentJson = editor ? editor.getJSON() : activeVersion.contentJson;
 
   const linkedCase = cases.find((c) => c.no === draft.linkedCaseNo) || null;
-  const teamOptions = TEAM_MEMBERS.filter((m) => m.name !== CURRENT_USER.name);
+  const teamOptions = staff
+    .filter((p) => p.full_name !== currentUser.name)
+    .map((p) => ({ id: p.id, name: p.full_name, role: ROLE_LABELS[p.role] || p.role }));
   const clientOptions = buildClientDirectory(cases);
 
   const [source, setSource] = useState(linkedCase ? "client" : "team");
   const [selectedNames, setSelectedNames] = useState(() => new Set());
   const [emails, setEmails] = useState({});
   const [subject, setSubject] = useState(`${draft.title} — for your records`);
-  const [message, setMessage] = useState("Dear {{Name}},\n\nPlease find the attached draft.\n\nRegards,\n" + CURRENT_USER.name);
+  const [message, setMessage] = useState("Dear {{Name}},\n\nPlease find the attached draft.\n\nRegards,\n" + currentUser.name);
   const [previewFor, setPreviewFor] = useState("");
   const [sending, setSending] = useState(false);
   const [results, setResults] = useState(null);
@@ -73,7 +79,6 @@ export default function MailMergeDialog({ draft, editor, onClose }) {
             message: mergeText(message, values),
             format: "pdf",
             draftTitle: draft.title,
-            senderName: CURRENT_USER.name,
             pdfBase64: draftPdfBase64(draft, mergedVersion),
           }),
         });

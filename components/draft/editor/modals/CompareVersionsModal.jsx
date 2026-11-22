@@ -2,12 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { useDrafts } from "../../DraftsContext";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
 import { diffVersions, applyDecisions, summarizeDiff } from "../diffEngine";
 import { plainTextToDoc } from "../extensions";
 import { canAcceptRejectChanges } from "../../permissions";
 
 export default function CompareVersionsModal({ draft, versionAId, versionBId, onClose }) {
   const { saveVersion } = useDrafts();
+  const currentUser = useCurrentUser();
   const versionA = draft.versions.find((v) => v.id === versionAId);
   const versionB = draft.versions.find((v) => v.id === versionBId);
   const [oldVersion, newVersion] = versionA.number <= versionB.number ? [versionA, versionB] : [versionB, versionA];
@@ -70,7 +72,7 @@ export default function CompareVersionsModal({ draft, versionAId, versionBId, on
                 <span className="badge green">+{summary.added} added</span>
                 <span className="badge red">−{summary.removed} removed</span>
                 <span className="badge orange">{summary.modified} modified</span>
-                {canAcceptRejectChanges() && (
+                {canAcceptRejectChanges(currentUser) && (
                   <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
                     <button type="button" className="btn btn-outline btn-sm" onClick={acceptAll}>
                       Accept All
@@ -96,7 +98,7 @@ export default function CompareVersionsModal({ draft, versionAId, versionBId, on
                           {change.type === "removed" && <s className="redline-removed">{change.text}</s>}
                           {change.type === "modified" && renderWords(change.words, change.id)}
                         </div>
-                        {canAcceptRejectChanges() && (
+                        {canAcceptRejectChanges(currentUser) && (
                           <div className="redline-change-actions">
                             <button
                               type="button"
@@ -125,9 +127,9 @@ export default function CompareVersionsModal({ draft, versionAId, versionBId, on
         {!saved && (
           <div className="modal-foot">
             <button type="button" className="btn btn-outline" onClick={onClose}>
-              {canAcceptRejectChanges() ? "Cancel" : "Close"}
+              {canAcceptRejectChanges(currentUser) ? "Cancel" : "Close"}
             </button>
-            {canAcceptRejectChanges() && (
+            {canAcceptRejectChanges(currentUser) && (
               <button type="button" className="btn" onClick={handleSaveMerged}>
                 Save as New Version
               </button>

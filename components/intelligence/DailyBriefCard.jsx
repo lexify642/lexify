@@ -4,7 +4,7 @@ import { useCases } from "@/components/cases/CasesContext";
 import { useTasks } from "@/components/tasks/TasksContext";
 import { useAppointments } from "@/components/appointments/AppointmentsContext";
 import { useAttachments } from "@/components/chat/AttachmentsContext";
-import { CURRENT_USER } from "@/data/team";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
 import { computeDailyBrief } from "./dailyBrief";
 
 export default function DailyBriefCard() {
@@ -12,8 +12,9 @@ export default function DailyBriefCard() {
   const { tasks } = useTasks();
   const { appointments } = useAppointments();
   const { attachments } = useAttachments();
+  const currentUser = useCurrentUser();
 
-  const brief = computeDailyBrief({ cases, tasks, appointments, attachments, auditLog, currentUser: CURRENT_USER });
+  const brief = computeDailyBrief({ cases, tasks, appointments, attachments, auditLog, currentUser });
   const c = brief.counts;
 
   return (

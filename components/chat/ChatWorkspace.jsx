@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useCases } from "@/components/cases/CasesContext";
 import { useTasks } from "@/components/tasks/TasksContext";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
 import { useChat } from "./ChatContext";
 import { buildConversations } from "./conversationUtils";
 import ChatSidebarList from "./ChatSidebarList";
@@ -14,12 +15,13 @@ import NewChatModal from "./NewChatModal";
 export default function ChatWorkspace() {
   const { cases } = useCases();
   const { tasks } = useTasks();
+  const currentUser = useCurrentUser();
   const { messages, groups, directConversations, clientChatAssignments, readState, online } = useChat();
   const searchParams = useSearchParams();
 
   const conversations = useMemo(
-    () => buildConversations({ cases, tasks, groups, directConversations, clientChatAssignments }),
-    [cases, tasks, groups, directConversations, clientChatAssignments]
+    () => buildConversations({ cases, tasks, groups, directConversations, clientChatAssignments, currentUser }),
+    [cases, tasks, groups, directConversations, clientChatAssignments, currentUser]
   );
 
   const [activeId, setActiveId] = useState(null);
@@ -56,6 +58,7 @@ export default function ChatWorkspace() {
         messages={messages}
         readState={readState}
         online={online}
+        currentUser={currentUser}
         activeId={activeId}
         onSelect={handleSelect}
         onNewChat={() => setShowNewChat(true)}

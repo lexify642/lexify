@@ -1,8 +1,12 @@
 import { jsonError, jsonErrorFromException, jsonOk } from "@/lib/api-response";
+import { requireStaff } from "@/lib/auth/requireStaff";
 import { getCaseById } from "@/lib/cases/query";
 import { idParamSchema } from "@/lib/validation";
 
 export async function GET(_request, { params }) {
+  const auth = await requireStaff();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   const parsed = idParamSchema.safeParse(id);
   if (!parsed.success) {

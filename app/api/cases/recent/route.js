@@ -1,8 +1,12 @@
 import { jsonError, jsonErrorFromException, jsonOk } from "@/lib/api-response";
+import { requireStaff } from "@/lib/auth/requireStaff";
 import { getRecentCases } from "@/lib/cases/query";
 import { paginationOnlySchema } from "@/lib/validation";
 
 export async function GET(request) {
+  const auth = await requireStaff();
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(request.url);
   const parsed = paginationOnlySchema.safeParse(Object.fromEntries(searchParams));
   if (!parsed.success) {

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useDraftComments } from "../../DraftCommentsContext";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
 import { canDeleteComment } from "../../permissions";
 
 // Real comment threads anchored to the document's own `comment` mark
@@ -9,6 +10,7 @@ import { canDeleteComment } from "../../permissions";
 // and highlights its anchor in the live document.
 export default function CommentsPanel({ draft, editor, onClose }) {
   const { commentsForDraft, replyToComment, resolveComment, reopenComment, deleteComment } = useDraftComments();
+  const currentUser = useCurrentUser();
   const [replyDrafts, setReplyDrafts] = useState({});
 
   const threads = commentsForDraft(draft.id);
@@ -72,7 +74,7 @@ export default function CommentsPanel({ draft, editor, onClose }) {
                 Resolve
               </button>
             )}
-            {canDeleteComment(thread) && (
+            {canDeleteComment(thread, currentUser) && (
               <button
                 type="button"
                 className="btn btn-outline btn-sm btn-danger"

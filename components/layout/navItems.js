@@ -1,11 +1,13 @@
 // Shared between the desktop/tablet Sidebar and the mobile BottomNav/Topbar
 // pill row so the navigations never drift out of sync with each other.
 export const WORKSPACE_ITEMS = [
+  { key: "dashboard", href: "/", icon: "◧", label: "Dashboard" },
   { key: "cases", href: "/cases", icon: "▤", label: "Cases" },
   { key: "chat", href: "/chat", icon: "💬", label: "Communication" },
   { key: "case-research", href: "/case-research", icon: "⚖", label: "Case Research" },
   { key: "clients", href: "/clients", icon: "◈", label: "Clients" },
   { key: "documents", href: "/documents", icon: "▥", label: "Documents" },
+  { key: "reports", href: "/reports", icon: "▨", label: "Reports" },
 ];
 
 // Grouped under the sidebar's "Tools" dropdown instead of sitting as their
@@ -35,8 +37,6 @@ export const NAV_GROUPS = [
   { key: "library", label: "Drafting Library", icon: "▦", items: LIBRARY_ITEMS, activePaths: ["/draft", "/legal-drafts"] },
 ];
 
-export const SYSTEM_ITEMS = [{ key: "admin", href: "/admin", icon: "⚙", label: "Admin Panel" }];
-
 export function activeKeyForPath(pathname) {
   if (pathname === "/") return "dashboard";
   if (pathname === "/cases") return "cases";
@@ -48,6 +48,7 @@ export function activeKeyForPath(pathname) {
   if (pathname.startsWith("/case-research")) return "case-research";
   if (pathname.startsWith("/clients")) return "clients";
   if (pathname.startsWith("/documents")) return "documents";
+  if (pathname.startsWith("/reports")) return "reports";
   if (pathname.startsWith("/legal-drafts")) return "legal-drafts";
   if (pathname.startsWith("/draft/clauses")) return "clauses";
   if (pathname.startsWith("/draft/templates")) return "templates";
@@ -64,5 +65,4 @@ const BOTTOM_NAV_KEYS = ["dashboard", "cases", "calendar", "task"];
 export const MOBILE_PILL_ITEMS = [
   ...WORKSPACE_ITEMS.filter((item) => !BOTTOM_NAV_KEYS.includes(item.key)),
   ...NAV_GROUPS.flatMap((group) => group.items).filter((item) => !BOTTOM_NAV_KEYS.includes(item.key)),
-  ...SYSTEM_ITEMS,
 ];

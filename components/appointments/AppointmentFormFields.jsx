@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { TEAM_MEMBERS } from "@/data/team";
 import { EVENT_TYPE_OPTIONS, REMINDER_OPTIONS, STATUS_OPTIONS, PRIORITY_OPTIONS } from "@/data/appointments";
+import { useStaffDirectory } from "@/components/staff/StaffDirectoryContext";
+import { ROLE_LABELS } from "@/lib/roles";
 import CaseSearchSelect from "@/components/calendar/CaseSearchSelect";
-
-const ASSIGNEE_OPTIONS = TEAM_MEMBERS.map((m) => `${m.name} — ${m.role}`);
 
 // The full Calendar Event form: an Existing Case / Independent Event toggle
 // up top, then a shared field set below. Plain field-set (no <form>/backdrop
@@ -16,10 +15,12 @@ const ASSIGNEE_OPTIONS = TEAM_MEMBERS.map((m) => `${m.name} — ${m.role}`);
 // stays a plain uncontrolled input read via FormData on submit, same as the
 // rest of the app's modals.
 export default function AppointmentFormFields({ cases, defaultValues }) {
+  const { staff } = useStaffDirectory();
   const [mode, setMode] = useState(defaultValues?.caseNo ? "existing" : "independent");
   const [selectedCaseNo, setSelectedCaseNo] = useState(defaultValues?.caseNo ?? "");
   const [reminder, setReminder] = useState(defaultValues?.reminder ?? "None");
 
+  const assigneeOptions = staff.map((p) => `${p.full_name} — ${ROLE_LABELS[p.role] || p.role}`);
   const selectedCase = cases.find((c) => c.no === selectedCaseNo);
   const defaultAssignee = defaultValues?.assignedToName ? `${defaultValues.assignedToName} — ${defaultValues.assignedToRole}` : "";
 
@@ -116,7 +117,7 @@ export default function AppointmentFormFields({ cases, defaultValues }) {
           Assigned to
           <select name="assignedTo" defaultValue={defaultAssignee}>
             <option value="">Unassigned</option>
-            {ASSIGNEE_OPTIONS.map((o) => (
+            {assigneeOptions.map((o) => (
               <option key={o}>{o}</option>
             ))}
           </select>

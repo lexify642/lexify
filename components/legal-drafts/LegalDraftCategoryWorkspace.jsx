@@ -13,6 +13,7 @@ import {
   t,
   translatePracticeArea,
 } from "@/data/legalDrafts";
+import { useLegalDrafts } from "./LegalDraftsContext";
 import PreviewModal from "./PreviewModal";
 
 const LANGUAGE_IDS = LANGUAGES.map((l) => l.id);
@@ -41,7 +42,8 @@ export default function LegalDraftCategoryWorkspace({ slug }) {
   const urlLanguage = searchParams.get("language");
   const language = LANGUAGE_IDS.includes(urlLanguage) ? urlLanguage : "english";
 
-  const category = getCategoryBySlug(slug);
+  const { categories } = useLegalDrafts();
+  const category = getCategoryBySlug(categories, slug);
   const [search, setSearch] = useState("");
   const [previewItem, setPreviewItem] = useState(null);
 

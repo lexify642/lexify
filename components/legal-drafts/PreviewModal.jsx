@@ -22,10 +22,14 @@ export default function PreviewModal({ open, item, language, onClose, onDownload
           </button>
         </div>
         <div className="modal-body">
-          <div className="document-preview-placeholder">
-            <FileText size={40} strokeWidth={1.5} />
-            <p>{t(language, "previewNote")}</p>
-          </div>
+          {item.previewUrl ? (
+            <iframe src={item.previewUrl} title={item.name} className="document-preview-frame" />
+          ) : (
+            <div className="document-preview-placeholder">
+              <FileText size={40} strokeWidth={1.5} />
+              <p>{t(language, "previewNote")}</p>
+            </div>
+          )}
         </div>
         <div className="modal-foot">
           <button type="button" className="btn btn-outline" onClick={onClose}>

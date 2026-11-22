@@ -1,13 +1,13 @@
 "use client";
 
-import clauseData from "@/data/clauses.json";
 import { exportClausesAsWord, exportClausesAsPdf, copyClausesAsText } from "../exportUtils";
 import { useState } from "react";
-
-const clauseById = new Map(clauseData.map((c) => [c.id, c]));
+import { useClauses } from "../ClausesContext";
 
 export default function ViewCollectionModal({ collection, onClose }) {
   const [copied, setCopied] = useState(false);
+  const { clauses: allClauses } = useClauses();
+  const clauseById = new Map(allClauses.map((c) => [c.id, c]));
   const clauses = collection.clauseIds.map((id) => clauseById.get(id)).filter(Boolean);
 
   async function handleCopyAll() {

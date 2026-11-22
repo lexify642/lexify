@@ -1,14 +1,14 @@
-import { CURRENT_USER } from "@/data/team";
+import { MANAGER_ROLES } from "@/lib/roles";
 
-const MANAGER_ROLES = ["Senior Advocate", "Admin"];
-
-// The app has no multi-user auth — CURRENT_USER is the one signed-in
-// identity — but the rule itself is real: Admin/Senior Advocate can manage
-// any task, everyone else only the ones assigned to them.
-export function canManageTask() {
-  return MANAGER_ROLES.includes(CURRENT_USER.role);
+// Real Supabase-backed roles now (see lib/roles.js) — the rule is unchanged:
+// Admin/Senior Advocate can manage any task, everyone else only the ones
+// assigned to them. Takes currentUser explicitly (from useCurrentUser())
+// instead of importing a fixed identity, since callers are always inside a
+// component that already has it.
+export function canManageTask(currentUser) {
+  return MANAGER_ROLES.includes(currentUser?.role);
 }
 
-export function canUpdateStatus(task) {
-  return canManageTask() || task.assignedToName === CURRENT_USER.name;
+export function canUpdateStatus(task, currentUser) {
+  return canManageTask(currentUser) || task.assignedToName === currentUser?.name;
 }

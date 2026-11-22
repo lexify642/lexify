@@ -6,7 +6,7 @@ import { useTasks } from "./TasksContext";
 import { useCases } from "@/components/cases/CasesContext";
 import TaskModal from "./TaskModal";
 import { TASK_STATUSES, PRIORITY_OPTIONS, toneForTaskStatus, toneForPriority, dueCategory } from "@/data/tasks";
-import { TEAM_MEMBERS } from "@/data/team";
+import { useStaffDirectory } from "@/components/staff/StaffDirectoryContext";
 import { displayDate } from "@/components/cases/utils";
 import SmartRemindersCard from "@/components/intelligence/SmartRemindersCard";
 
@@ -17,6 +17,7 @@ export default function TaskListWorkspace() {
   const searchParams = useSearchParams();
   const { tasks, addTask } = useTasks();
   const { cases } = useCases();
+  const { staff } = useStaffDirectory();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "");
   const [priorityFilter, setPriorityFilter] = useState("");
@@ -110,9 +111,9 @@ export default function TaskListWorkspace() {
           </select>
           <select value={assigneeFilter} onChange={(e) => setAssigneeFilter(e.target.value)} aria-label="Filter by assigned person">
             <option value="">All Assignees</option>
-            {TEAM_MEMBERS.map((m) => (
-              <option key={m.id} value={m.name}>
-                {m.name}
+            {staff.map((m) => (
+              <option key={m.id} value={m.full_name}>
+                {m.full_name}
               </option>
             ))}
           </select>

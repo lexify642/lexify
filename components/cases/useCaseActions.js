@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useCases } from "./CasesContext";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
 import { displayDate, toneForStage } from "./utils";
 
 function getInitialValues(type, index, current) {
@@ -11,7 +12,6 @@ function getInitialValues(type, index, current) {
     const note = current.notes[index];
     return { date: "", text: note.text, isReminder: note.isReminder, dueDate: note.dueDate };
   }
-  if (type === "document") return { name: current.docs[index] };
   return null;
 }
 
@@ -22,6 +22,7 @@ function getInitialValues(type, index, current) {
 // longer part of a case's own record, only referenced from it via caseNo.
 export function useCaseActions(caseNo) {
   const { cases, setCases, logCaseEdit } = useCases();
+  const currentUser = useCurrentUser();
   const [modal, setModal] = useState(null);
   const [editCaseOpen, setEditCaseOpen] = useState(false);
   const [toast, setToast] = useState({ message: "", visible: false });
@@ -93,7 +94,7 @@ export function useCaseActions(caseNo) {
               stage: c.stage,
               purpose: "Hearing",
               outcome: data.outcome,
-              advocate: "John Anderson",
+              advocate: currentUser.name,
               updatedAt: new Date().toLocaleString("en-IN", {
                 day: "2-digit",
                 month: "short",
@@ -130,13 +131,6 @@ export function useCaseActions(caseNo) {
             };
             return { ...c, previousDates: [entry, ...c.previousDates] };
           }
-          case "document": {
-            const name = data.file?.name || data.name;
-            return {
-              ...c,
-              docs: index === null ? [...c.docs, name] : c.docs.map((d, i) => (i === index ? name : d)),
-            };
-          }
           default:
             return c;
         }
@@ -146,7 +140,7 @@ export function useCaseActions(caseNo) {
     // via CasesContext.auditLog — same mechanism handleSaveCaseDetails already used below,
     // just extended to the other real edit paths so the feed reflects all case activity,
     // not only the "Edit Case" modal.
-    const editLabels = { note: "Note added", nextDate: "Next hearing date updated", previousDate: "Previous date added", document: "Document added" };
+    const editLabels = { note: "Note added", nextDate: "Next hearing date updated", previousDate: "Previous date added" };
     if (editLabels[type]) logCaseEdit(caseNo, [editLabels[type]]);
     closeModal();
     showToast("Changes saved.");
@@ -159,15 +153,10 @@ export function useCaseActions(caseNo) {
         if (c.no !== caseNo) return c;
         if (type === "client") return { ...c, client: null };
         if (type === "note") return { ...c, notes: c.notes.filter((_, i) => i !== index) };
-        if (type === "document") return { ...c, docs: c.docs.filter((_, i) => i !== index) };
         return c;
       })
     );
     showToast(`${type} deleted.`);
-  }
-
-  function handleViewDocument(name) {
-    window.alert(`Previewing ${name}\n\nIn a connected application, the selected file opens in the document viewer.`);
   }
 
   function openEditCase() {
@@ -200,7 +189,6 @@ export function useCaseActions(caseNo) {
     initialValues: modal ? getInitialValues(modal.type, modal.index, current) : null,
     handleModalSubmit,
     handleDelete,
-    handleViewDocument,
     editCaseOpen,
     openEditCase,
     closeEditCase,

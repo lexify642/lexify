@@ -23,7 +23,7 @@ function timeLabel(iso) {
   return d.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
 }
 
-export default function ChatSidebarList({ conversations, messages, readState, online, activeId, onSelect, onNewChat }) {
+export default function ChatSidebarList({ conversations, messages, readState, online, currentUser, activeId, onSelect, onNewChat }) {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("all");
 
@@ -58,7 +58,7 @@ export default function ChatSidebarList({ conversations, messages, readState, on
         {filtered.length === 0 && <div className="empty-inline">No chats found.</div>}
         {filtered.map((c) => {
           const last = lastMessageFor(c.id, messages);
-          const unread = unreadCountFor(c.id, messages, readState);
+          const unread = unreadCountFor(c.id, messages, readState, currentUser);
           const isOnline = c.kind === "direct" && online[c.otherName];
           return (
             <button

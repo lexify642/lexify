@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import clauses from "@/data/clauses.json";
+import { useClauses } from "./ClausesContext";
 import { searchClauses } from "./clauseUtils";
 import { useClauseWorkspace } from "./ClauseWorkspaceContext";
 import ClauseSearchFilters from "./clause-bank/ClauseSearchFilters";
@@ -15,6 +15,7 @@ const PAGE_SIZE = 12;
 
 export default function ClauseBank({ active = true }) {
   const { savedClauseIds, logRecentUse } = useClauseWorkspace();
+  const { clauses } = useClauses();
 
   const [hasSearched, setHasSearched] = useState(false);
   const [activeFilters, setActiveFilters] = useState({});
@@ -29,11 +30,11 @@ export default function ClauseBank({ active = true }) {
     let list = searchClauses(clauses, { filters: activeFilters, query: activeQuery });
     if (savedOnly) list = list.filter((c) => savedClauseIds.includes(c.id));
     return list;
-  }, [hasSearched, activeFilters, activeQuery, savedOnly, savedClauseIds]);
+  }, [hasSearched, activeFilters, activeQuery, savedOnly, savedClauseIds, clauses]);
 
   const totalPages = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
   const pageResults = results.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const selectedClauses = useMemo(() => clauses.filter((c) => selectedIds.has(c.id)), [selectedIds]);
+  const selectedClauses = useMemo(() => clauses.filter((c) => selectedIds.has(c.id)), [selectedIds, clauses]);
 
   function handleSearch(filters, query) {
     const hasCriteria = Object.values(filters).some(Boolean) || query.trim();

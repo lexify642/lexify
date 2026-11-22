@@ -1,39 +1,47 @@
 "use client";
 
-import { createContext, useContext, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { generateJSON } from "@tiptap/html";
-import { CURRENT_USER } from "@/data/team";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
 import { editorExtensions, jsonToText } from "./editor/extensions";
 
 const DraftsContext = createContext(null);
-
-// Same starting content the Draft Editor has always shown — converted once
-// into a real TipTap document (see buildSeedDraft below) so a first-time
-// visitor to /draft still sees exactly this, but now as genuine structured
-// content instead of a raw HTML string.
-const SEED_DRAFT_HTML = `<h3>IN THE HIGH COURT OF JUDICATURE AT MUMBAI</h3><h3>ORDINARY ORIGINAL CIVIL JURISDICTION</h3><p>SUIT NO. ______ OF 2026</p><p><b>ABC CORPORATION LIMITED</b><br>...Plaintiff</p><p><b>VERSUS</b></p><p><b>XYZ LIMITED</b><br>...Defendant</p><p><b>PLAINT</b></p><p>The Plaintiff above named respectfully submits as follows: The Plaintiff is a company incorporated under the Companies Act, 2013 and carries on business from its registered office at Mumbai.</p>`;
 
 function nowIso() {
   return new Date().toISOString();
 }
 
-function newId(prefix) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+function newUuid() {
+  return crypto.randomUUID();
 }
 
+// LegalParagraph (extensions.js) is Paragraph.extend()'d without a `name`
+// override, so its real registered node type is still "paragraph" — the
+// "legalParagraph" node name was never actually registered anywhere, which
+// made every brand-new blank draft fail to parse the moment it loaded
+// ("Unknown node type: legalParagraph").
 function emptyDoc() {
-  return { type: "doc", content: [{ type: "legalParagraph", content: [] }] };
+  return { type: "doc", content: [{ type: "paragraph", content: [] }] };
 }
 
-function makeVersion({ contentJson, action, number, label }) {
+async function fetchJson(url, options) {
+  const res = await fetch(url, options);
+  const payload = await res.json().catch(() => null);
+  if (!res.ok || !payload) {
+    throw new Error(payload?.error?.message || "Something went wrong.");
+  }
+  return payload.data;
+}
+
+function makeVersion({ id, contentJson, action, number, label, authorName }) {
   return {
-    id: newId("version"),
+    id: id || newUuid(),
     number,
     label: label || `v${number}`,
     contentJson,
     contentText: jsonToText(contentJson),
     createdAt: nowIso(),
-    createdBy: CURRENT_USER.name,
+    createdBy: authorName,
     action,
     status: "Active",
   };
@@ -51,6 +59,10 @@ const DEFAULT_LAYOUT = {
   lineNumbers: false,
   headerDistance: 24,
   footerDistance: 24,
+  customMargins: null, // { top, bottom, left, right } in px, used when margin === "custom"
+  pageNumbers: null, // { position: "header-left"|"header-right"|"footer-left"|"footer-right", format: "plain"|"pageN"|"pageNofM" }
+  hyphenation: false,
+  protected: false, // Review → Protect: read-only for everyone until switched off
 };
 
 const DEFAULT_DESIGN = { preset: null, watermark: null, fontPairing: "classic", spacing: "normal", pageBackground: "white", pageBorder: false };
@@ -71,49 +83,39 @@ export const LEGAL_PRESETS = {
   Submission: { design: { fontPairing: "classic", spacing: "normal" }, layout: { margin: "normal" } },
 };
 
-function buildSeedDraft() {
-  const contentJson = generateJSON(SEED_DRAFT_HTML, editorExtensions);
-  const v1 = makeVersion({ contentJson, action: "Created", number: 1 });
-  return {
-    id: "draft-plaint-abc-xyz",
-    title: "Plaint — ABC Corporation Limited vs XYZ Limited",
-    type: "Plaint",
-    linkedCaseNo: "02",
-    clientName: "ABC Corp.",
-    description: "",
-    versions: [v1],
-    activeVersionId: v1.id,
-    headerHtml: "",
-    footerHtml: "",
-    layout: { ...DEFAULT_LAYOUT },
-    design: { ...DEFAULT_DESIGN, preset: "Plaint" },
-    createdAt: "2026-07-15T09:00:00.000Z",
-    updatedAt: "2026-07-15T09:00:00.000Z",
-  };
-}
-
-// Built once at module load (not per-render) — every DraftsProvider mount
-// (there is only ever one, in app/layout.js) starts from the same seed.
-let cachedSeedDraft = null;
-function getSeedDraft() {
-  if (!cachedSeedDraft) cachedSeedDraft = buildSeedDraft();
-  return cachedSeedDraft;
-}
-
-// Minimal, honest multi-draft/version storage — mirrors the CasesContext/
-// TasksContext pattern (Provider + useState + mutator functions), mounted
-// once in app/layout.js so the Draft Editor, Clause Bank, and Template Bank
-// always see the same list. Content lives as real TipTap JSON so it can be
-// diffed, exported, and inserted into precisely — never a raw HTML blob.
+// Backed by Supabase (app/api/drafts/*) instead of a single hardcoded seed
+// draft. Every exported method keeps its exact original signature and
+// synchronous return behavior — critically, addDraft/saveVersion/
+// restoreVersion all still return a usable {id, ...} object immediately,
+// because the id is generated client-side (crypto.randomUUID()) and sent to
+// the server as part of the create payload, rather than waiting on the
+// server to assign one. That's what lets AddToDraftModal, PartnershipDeedEngine,
+// and SendForReviewModal keep using the return value synchronously with zero
+// changes to their own logic.
 export function DraftsProvider({ children }) {
-  const [drafts, setDrafts] = useState(() => [getSeedDraft()]);
-  const [activeDraftId, setActiveDraftId] = useState(() => getSeedDraft().id);
+  const currentUser = useCurrentUser();
+  const [drafts, setDrafts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeDraftId, setActiveDraftId] = useState(null);
 
-  // Holds the live TipTap editor instance for whichever draft is currently
-  // open on screen, so insertions (Clause Bank "Add to Draft", Mail Merge,
-  // etc.) land at the real cursor position when possible instead of always
-  // falling back to "append a paragraph at the end".
   const liveEditorRef = useRef(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchJson("/api/drafts")
+      .then((data) => {
+        if (cancelled) return;
+        setDrafts(data);
+        if (data.length) setActiveDraftId((prev) => prev || data[0].id);
+      })
+      .catch((err) => console.error("[DraftsContext] initial load failed", err))
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function registerLiveEditor(draftId, editor) {
     liveEditorRef.current = { draftId, editor };
@@ -131,10 +133,6 @@ export function DraftsProvider({ children }) {
     return draft.versions.find((v) => v.id === draft.activeVersionId) || draft.versions[draft.versions.length - 1];
   }
 
-  // `contentJson` is the real seed for a new draft's first version. `blocks`
-  // (an array of {html}) is accepted for backward compatibility with the
-  // Clause-Bank-built modals that still assemble drafts as HTML blocks —
-  // it's converted into the same real document model.
   function addDraft({ title, type, linkedCaseNo, clientName, description, contentJson, blocks }) {
     let doc = contentJson;
     if (!doc && blocks && blocks.length) {
@@ -142,9 +140,9 @@ export function DraftsProvider({ children }) {
     }
     if (!doc) doc = emptyDoc();
 
-    const v1 = makeVersion({ contentJson: doc, action: "Created", number: 1 });
+    const v1 = makeVersion({ contentJson: doc, action: "Created", number: 1, authorName: currentUser.name });
     const entry = {
-      id: newId("draft"),
+      id: newUuid(),
       title,
       type: type || "Draft",
       linkedCaseNo: linkedCaseNo || null,
@@ -161,24 +159,39 @@ export function DraftsProvider({ children }) {
     };
     setDrafts((prev) => [entry, ...prev]);
     setActiveDraftId(entry.id);
+
+    fetchJson("/api/drafts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: entry.id, versionId: v1.id, title, type: entry.type, caseNo: linkedCaseNo, clientName, description, contentJson: doc }),
+    }).catch((err) => console.error("[DraftsContext] addDraft persist failed", err));
+
     return entry;
   }
 
-  // Only creates a new version when the content genuinely changed since the
-  // last saved one — typing/autosave doesn't spam the version list.
+  // Only creates a new version when the document genuinely changed since
+  // the last saved one — autosave doesn't spam the version list.
   function saveVersion(draftId, contentJson, action = "Edited") {
     let created = null;
     setDrafts((prev) =>
       prev.map((d) => {
         if (d.id !== draftId) return d;
         const current = getActiveVersion(d);
-        const newText = jsonToText(contentJson);
-        if (current && current.contentText === newText) return d;
-        const version = makeVersion({ contentJson, action, number: d.versions.length + 1 });
+        // Compare the whole document, not just its text, so formatting-only
+        // edits (bold, alignment, colour, tracked-change marks) are saved too.
+        if (current && JSON.stringify(current.contentJson) === JSON.stringify(contentJson)) return d;
+        const version = makeVersion({ contentJson, action, number: d.versions.length + 1, authorName: currentUser.name });
         created = version;
         return { ...d, versions: [...d.versions, version], activeVersionId: version.id, updatedAt: nowIso() };
       })
     );
+    if (created) {
+      fetchJson(`/api/drafts/${draftId}/versions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: created.id, contentJson, action, label: created.label }),
+      }).catch((err) => console.error("[DraftsContext] saveVersion persist failed", err));
+    }
     return created;
   }
 
@@ -191,11 +204,23 @@ export function DraftsProvider({ children }) {
         if (d.id !== draftId) return d;
         const target = d.versions.find((v) => v.id === versionId);
         if (!target) return d;
-        const version = makeVersion({ contentJson: target.contentJson, action: `Restored from ${target.label}`, number: d.versions.length + 1 });
+        const version = makeVersion({
+          contentJson: target.contentJson,
+          action: `Restored from ${target.label}`,
+          number: d.versions.length + 1,
+          authorName: currentUser.name,
+        });
         created = version;
         return { ...d, versions: [...d.versions, version], activeVersionId: version.id, updatedAt: nowIso() };
       })
     );
+    if (created) {
+      fetchJson(`/api/drafts/${draftId}/versions/${versionId}/restore`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: created.id }),
+      }).catch((err) => console.error("[DraftsContext] restoreVersion persist failed", err));
+    }
     return created;
   }
 
@@ -222,7 +247,12 @@ export function DraftsProvider({ children }) {
         const current = getActiveVersion(d);
         const fragmentJson = generateJSON(html, editorExtensions);
         const newDoc = { ...current.contentJson, content: [...(current.contentJson.content || []), ...(fragmentJson.content || [])] };
-        const version = makeVersion({ contentJson: newDoc, action: label, number: d.versions.length + 1 });
+        const version = makeVersion({ contentJson: newDoc, action: label, number: d.versions.length + 1, authorName: currentUser.name });
+        fetchJson(`/api/drafts/${draftId}/versions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: version.id, contentJson: newDoc, action: label, label: version.label }),
+        }).catch((err) => console.error("[DraftsContext] insertContentIntoDraft persist failed", err));
         return { ...d, versions: [...d.versions, version], activeVersionId: version.id, updatedAt: nowIso() };
       })
     );
@@ -240,16 +270,26 @@ export function DraftsProvider({ children }) {
     return version;
   }
 
+  function persistMeta(draftId, patch) {
+    fetchJson(`/api/drafts/${draftId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) }).catch((err) =>
+      console.error("[DraftsContext] meta update failed", err)
+    );
+  }
+
   function updateDraftMeta(draftId, patch) {
     setDrafts((prev) => prev.map((d) => (d.id === draftId ? { ...d, ...patch, updatedAt: nowIso() } : d)));
+    const { linkedCaseNo, ...rest } = patch;
+    persistMeta(draftId, { ...rest, ...(linkedCaseNo !== undefined ? { caseNo: linkedCaseNo } : {}) });
   }
 
   function updateDraftLayout(draftId, patch) {
     setDrafts((prev) => prev.map((d) => (d.id === draftId ? { ...d, layout: { ...d.layout, ...patch }, updatedAt: nowIso() } : d)));
+    persistMeta(draftId, { layout: patch });
   }
 
   function updateDraftDesign(draftId, patch) {
     setDrafts((prev) => prev.map((d) => (d.id === draftId ? { ...d, design: { ...d.design, ...patch }, updatedAt: nowIso() } : d)));
+    persistMeta(draftId, { design: patch });
   }
 
   // Applies a named legal-document preset's real formatting bundle — never
@@ -264,6 +304,7 @@ export function DraftsProvider({ children }) {
           : d
       )
     );
+    persistMeta(draftId, { design: { ...preset.design, preset: presetName }, layout: preset.layout });
   }
 
   function updateHeaderFooter(draftId, { headerHtml, footerHtml }) {
@@ -274,6 +315,7 @@ export function DraftsProvider({ children }) {
           : d
       )
     );
+    persistMeta(draftId, { ...(headerHtml !== undefined ? { headerHtml } : {}), ...(footerHtml !== undefined ? { footerHtml } : {}) });
   }
 
   return (
@@ -296,6 +338,7 @@ export function DraftsProvider({ children }) {
         unregisterLiveEditor,
         getLiveEditor,
         getActiveVersion,
+        loading,
       }}
     >
       {children}

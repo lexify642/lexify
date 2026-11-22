@@ -14,7 +14,7 @@ import { buildConversations } from "@/components/chat/conversationUtils";
 import { buildChatNotifications } from "@/components/chat/chatNotifications";
 import { computeSmartReminders } from "@/components/intelligence/reminders";
 import { buildReviewNotifications } from "@/components/draft/reviewNotifications";
-import { CURRENT_USER } from "@/data/team";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
 import { dueCategory } from "@/data/tasks";
 
 const TYPE_ICONS = {
@@ -35,11 +35,11 @@ const TYPE_ICONS = {
 // Purely a computed, session-local feed (no backend/push infra exists in
 // this app) — derived fresh from the live Tasks store every render, so it
 // can never drift out of sync with the tasks it's describing.
-function buildNotifications(tasks) {
+function buildNotifications(tasks, currentUser) {
   const items = [];
   tasks.forEach((t) => {
     const cat = dueCategory(t);
-    if (t.assignedToName === CURRENT_USER.name) {
+    if (t.assignedToName === currentUser?.name) {
       items.push({ id: `assigned-${t.id}`, type: "assigned", taskId: t.id, message: `New task assigned: "${t.title}"`, timestamp: t.assignedAt });
     }
     if (cat === "today") {
@@ -74,13 +74,14 @@ export default function NotificationBell() {
   const { attachments } = useAttachments();
   const { drafts } = useDrafts();
   const { reviewRequests } = useDraftReview();
+  const currentUser = useCurrentUser();
   const [open, setOpen] = useState(false);
   const [seenIds, setSeenIds] = useState(() => new Set());
   const containerRef = useRef(null);
 
   const notifications = useMemo(() => {
-    const conversations = buildConversations({ cases, tasks, groups, directConversations, clientChatAssignments });
-    const chatItems = buildChatNotifications({ messages, conversations, attachments, appointments });
+    const conversations = buildConversations({ cases, tasks, groups, directConversations, clientChatAssignments, currentUser });
+    const chatItems = buildChatNotifications({ messages, conversations, attachments, appointments, currentUser });
     const reminderItems = computeSmartReminders({ cases, tasks, appointments, attachments }).map((r) => ({
       id: r.id,
       type: r.type,
@@ -89,10 +90,10 @@ export default function NotificationBell() {
       timestamp: r.timestamp,
     }));
     const reviewItems = buildReviewNotifications(reviewRequests, drafts);
-    return [...buildNotifications(tasks), ...chatItems, ...reminderItems, ...reviewItems]
+    return [...buildNotifications(tasks, currentUser), ...chatItems, ...reminderItems, ...reviewItems]
       .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
       .slice(0, 20);
-  }, [tasks, cases, groups, directConversations, clientChatAssignments, messages, attachments, appointments, reviewRequests, drafts]);
+  }, [tasks, cases, groups, directConversations, clientChatAssignments, messages, attachments, appointments, reviewRequests, drafts, currentUser]);
   const unreadCount = notifications.filter((n) => !seenIds.has(n.id)).length;
 
   useEffect(() => {

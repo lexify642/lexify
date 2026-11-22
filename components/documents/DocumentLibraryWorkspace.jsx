@@ -7,6 +7,7 @@ import { useTasks } from "@/components/tasks/TasksContext";
 import { useChat } from "@/components/chat/ChatContext";
 import { useAttachments } from "@/components/chat/AttachmentsContext";
 import { buildConversations } from "@/components/chat/conversationUtils";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
 import { formatFileSize, MIME_CATEGORIES } from "@/data/attachments";
 import AttachFileMenu from "@/components/chat/AttachFileMenu";
 
@@ -15,6 +16,7 @@ export default function DocumentLibraryWorkspace() {
   const { tasks } = useTasks();
   const { groups, directConversations, clientChatAssignments } = useChat();
   const { attachments } = useAttachments();
+  const currentUser = useCurrentUser();
   const searchParams = useSearchParams();
 
   const [search, setSearch] = useState("");
@@ -25,8 +27,8 @@ export default function DocumentLibraryWorkspace() {
   const highlightId = searchParams.get("highlight");
 
   const conversations = useMemo(
-    () => buildConversations({ cases, tasks, groups, directConversations, clientChatAssignments }),
-    [cases, tasks, groups, directConversations, clientChatAssignments]
+    () => buildConversations({ cases, tasks, groups, directConversations, clientChatAssignments, currentUser }),
+    [cases, tasks, groups, directConversations, clientChatAssignments, currentUser]
   );
 
   useEffect(() => {

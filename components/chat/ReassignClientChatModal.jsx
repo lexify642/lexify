@@ -1,10 +1,13 @@
 "use client";
 
-import { TEAM_MEMBERS } from "@/data/team";
+import { useStaffDirectory } from "@/components/staff/StaffDirectoryContext";
+import { ROLE_LABELS } from "@/lib/roles";
 import { useChat } from "./ChatContext";
 
 export default function ReassignClientChatModal({ conversation, onClose }) {
   const { reassignClientChat } = useChat();
+  const { staff } = useStaffDirectory();
+  const teamMembers = staff.map((p) => ({ id: p.id, name: p.full_name, role: ROLE_LABELS[p.role] || p.role }));
 
   function handleAssign(member) {
     reassignClientChat(conversation.clientName, member.name, member.role);
@@ -26,7 +29,7 @@ export default function ReassignClientChatModal({ conversation, onClose }) {
             </div>
           )}
           <div className="new-chat-member-list">
-            {TEAM_MEMBERS.map((m) => (
+            {teamMembers.map((m) => (
               <div className="new-chat-member-row" key={m.id}>
                 <div>
                   <strong>{m.name}</strong>

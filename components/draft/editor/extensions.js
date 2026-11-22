@@ -6,6 +6,8 @@ import { Mark, Node, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Paragraph from "@tiptap/extension-paragraph";
 import Heading from "@tiptap/extension-heading";
+import BulletList from "@tiptap/extension-bullet-list";
+import OrderedList from "@tiptap/extension-ordered-list";
 import { TextStyle, FontFamily, FontSize } from "@tiptap/extension-text-style";
 import Color from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
@@ -15,7 +17,24 @@ import CharacterCount from "@tiptap/extension-character-count";
 import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
 import { TableKit } from "@tiptap/extension-table/kit";
-import { PaginationExtension } from "./pagination";
+import Image from "@tiptap/extension-image";
+import { Mathematics } from "@tiptap/extension-mathematics";
+import { PaginationPlus } from "tiptap-pagination-plus";
+import { InsertionMark, DeletionMark, TrackChanges } from "./trackChanges";
+import { PAGE_GAP, CANVAS_COLOR } from "./pagination";
+
+function parseSpacing(value) {
+  if (value === null || value === undefined || value === "" || value === "false") return false;
+  if (value === "true") return true;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : false;
+}
+
+function spacingHtml(side, value) {
+  if (value === false || value === null || value === undefined || value === 0) return {};
+  const amount = value === true ? "16px" : `${value}pt`;
+  return { [`data-spacing-${side}`]: String(value), style: `margin-${side === "before" ? "top" : "bottom"}:${amount}` };
+}
 
 // Real Layout-tab paragraph controls (indent, line spacing, space before/
 // after, borders) — plain attributes on the block node, rendered as inline
@@ -25,30 +44,51 @@ import { PaginationExtension } from "./pagination";
 // the final <p>/<h1-3>.
 function blockLayoutAttributes() {
   return {
+    // Left indent in 32px steps (Home → Increase Indent); Layout → Indent
+    // Left sets fractional values from centimetres.
     indent: {
       default: 0,
       parseHTML: (el) => Number(el.getAttribute("data-indent")) || 0,
-      renderHTML: (attrs) => (attrs.indent ? { "data-indent": attrs.indent, style: `margin-left:${attrs.indent * 32}px` } : {}),
+      renderHTML: (attrs) => (attrs.indent ? { "data-indent": attrs.indent, style: `margin-left:${+(attrs.indent * 32).toFixed(2)}px` } : {}),
+    },
+    indentRight: {
+      default: 0,
+      parseHTML: (el) => Number(el.getAttribute("data-indent-right")) || 0,
+      renderHTML: (attrs) => (attrs.indentRight ? { "data-indent-right": attrs.indentRight, style: `margin-right:${attrs.indentRight}px` } : {}),
     },
     lineSpacing: {
       default: null,
       parseHTML: (el) => el.getAttribute("data-line-spacing"),
       renderHTML: (attrs) => (attrs.lineSpacing ? { "data-line-spacing": attrs.lineSpacing, style: `line-height:${attrs.lineSpacing}` } : {}),
     },
+    // Space before/after a paragraph: a number of points (Layout → Spacing),
+    // or `true` from older drafts / Home → Line Spacing's "Add space"
+    // toggles, which keeps its original 16px.
     spacingBefore: {
       default: false,
-      parseHTML: (el) => el.getAttribute("data-spacing-before") === "true",
-      renderHTML: (attrs) => (attrs.spacingBefore ? { "data-spacing-before": "true", style: "margin-top:16px" } : {}),
+      parseHTML: (el) => parseSpacing(el.getAttribute("data-spacing-before")),
+      renderHTML: (attrs) => spacingHtml("before", attrs.spacingBefore),
     },
     spacingAfter: {
       default: false,
-      parseHTML: (el) => el.getAttribute("data-spacing-after") === "true",
-      renderHTML: (attrs) => (attrs.spacingAfter ? { "data-spacing-after": "true", style: "margin-bottom:16px" } : {}),
+      parseHTML: (el) => parseSpacing(el.getAttribute("data-spacing-after")),
+      renderHTML: (attrs) => spacingHtml("after", attrs.spacingAfter),
     },
+    // A space-separated set of sides ("top", "top bottom", "top bottom left
+    // right" == a full box, ...) rather than a boolean — Home ribbon's
+    // Borders dropdown toggles individual sides the same way Word's does,
+    // and "Outside"/"Inside Borders" (applied across a multi-paragraph
+    // selection) assign different side-sets to different blocks. Rendered as
+    // real inline border-* CSS (not a stylesheet class) specifically so it
+    // round-trips into the Word-HTML export, which ships with no stylesheet.
     border: {
-      default: false,
-      parseHTML: (el) => el.getAttribute("data-border") === "true",
-      renderHTML: (attrs) => (attrs.border ? { "data-border": "true", class: "doc-para-border" } : {}),
+      default: "",
+      parseHTML: (el) => el.getAttribute("data-border") || "",
+      renderHTML: (attrs) => {
+        if (!attrs.border) return {};
+        const sides = attrs.border.split(" ").filter(Boolean);
+        return { "data-border": attrs.border, style: sides.map((s) => `border-${s}:1.5px solid #a8c3de`).join(";") };
+      },
     },
     shading: {
       default: null,
@@ -88,6 +128,45 @@ export const LegalHeading = Heading.extend({
         renderHTML: (attrs) => (attrs.legalStyle ? { "data-legal-style": attrs.legalStyle, class: `legal-style-${attrs.legalStyle}` } : {}),
       },
       ...blockLayoutAttributes(),
+    };
+  },
+});
+
+// Word's Bullets gallery (disc/circle/square) and Numbering gallery
+// (decimal/upper-alpha/upper-roman/lower-alpha/lower-roman) — rendered as a
+// plain inline `list-style-type`, so it's portable to the Word-HTML export
+// with zero stylesheet dependency. `multilevel` additionally marks a root
+// ordered list as a legal numbering scheme (see the `ol[data-multilevel]`
+// rules in globals.css + the matching <style> block wordExport.js injects);
+// while active, the per-item inline list-style-type is suppressed so it
+// doesn't fight the CSS-driven nested counters/per-depth marker rules.
+export const StyledBulletList = BulletList.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      markerStyle: {
+        default: "disc",
+        parseHTML: (el) => el.getAttribute("data-marker-style") || "disc",
+        renderHTML: (attrs) => ({ "data-marker-style": attrs.markerStyle, style: `list-style-type:${attrs.markerStyle}` }),
+      },
+    };
+  },
+});
+
+export const StyledOrderedList = OrderedList.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      markerStyle: {
+        default: "decimal",
+        parseHTML: (el) => el.getAttribute("data-marker-style") || "decimal",
+        renderHTML: (attrs) => (attrs.multilevel ? {} : { "data-marker-style": attrs.markerStyle, style: `list-style-type:${attrs.markerStyle}` }),
+      },
+      multilevel: {
+        default: null, // null | "legal-decimal" (1, 1.1, 1.1.1) | "legal-roman" (I, A, 1, i)
+        parseHTML: (el) => el.getAttribute("data-multilevel"),
+        renderHTML: (attrs) => (attrs.multilevel ? { "data-multilevel": attrs.multilevel, style: "list-style:none" } : {}),
+      },
     };
   },
 });
@@ -186,29 +265,120 @@ export const CommentMark = Mark.create({
   },
 });
 
-// A real, atomic page/section break — rendered as a visible divider on
-// screen and read by pdfExport.js to force a new page during PDF rendering.
+// A real, atomic page / section / column break. On screen the node view
+// holds a spacer that pagination.js grows so whatever follows starts on the
+// next page; in exported HTML (Word, print) it's a CSS break, which
+// docx/html turns into a real Word page break.
+const BREAK_LABELS = { page: "Page Break", section: "Section Break (Next Page)", column: "Column Break" };
+
 export const PageBreak = Node.create({
   name: "pageBreak",
   group: "block",
   atom: true,
   selectable: true,
   addAttributes() {
-    return { breakType: { default: "page" } };
+    // Written out as data-break-type by renderHTML below.
+    return { breakType: { default: "page", renderHTML: () => ({}) } };
   },
   parseHTML() {
-    return [{ tag: "div[data-break-type]" }];
+    return [{ tag: "div[data-break-type]", getAttrs: (el) => ({ breakType: el.getAttribute("data-break-type") || "page" }) }];
   },
-  renderHTML({ HTMLAttributes }) {
-    const label = HTMLAttributes.breakType === "section" ? "Section Break" : "Page Break";
-    return ["div", mergeAttributes(HTMLAttributes, { "data-break-type": HTMLAttributes.breakType, class: "doc-break", contenteditable: "false" }), label];
+  renderHTML({ node, HTMLAttributes }) {
+    const type = node.attrs.breakType || "page";
+    const style = type === "column" ? "break-after:column" : "page-break-after:always;break-after:page";
+    return ["div", mergeAttributes(HTMLAttributes, { "data-break-type": type, class: "doc-break", style })];
+  },
+  addNodeView() {
+    return ({ node }) => {
+      const dom = document.createElement("div");
+      dom.className = "doc-break";
+      dom.dataset.breakType = node.attrs.breakType;
+      dom.contentEditable = "false";
+      const spacer = document.createElement("span");
+      spacer.className = "doc-break-spacer";
+      const label = document.createElement("span");
+      label.className = "doc-break-label";
+      label.textContent = BREAK_LABELS[node.attrs.breakType] || BREAK_LABELS.page;
+      dom.append(spacer, label);
+      return { dom, ignoreMutation: () => true };
+    };
   },
   addCommands() {
     return {
       insertPageBreak:
         (breakType = "page") =>
         ({ commands }) =>
-          commands.insertContent({ type: this.name, attrs: { breakType } }),
+          commands.insertContent([{ type: this.name, attrs: { breakType } }, { type: "paragraph" }]),
+    };
+  },
+  addKeyboardShortcuts() {
+    return { "Mod-Enter": () => this.editor.commands.insertPageBreak("page") };
+  },
+});
+
+// Insert → Text Box: a bordered box holding its own paragraphs.
+export const TextBox = Node.create({
+  name: "textBox",
+  group: "block",
+  content: "block+",
+  defining: true,
+  addAttributes() {
+    return {
+      // Written out as data-width/data-align by renderHTML below.
+      width: { default: 320, parseHTML: (el) => Number(el.getAttribute("data-width")) || 320, renderHTML: () => ({}) },
+      align: { default: "left", parseHTML: (el) => el.getAttribute("data-align") || "left", renderHTML: () => ({}) },
+    };
+  },
+  parseHTML() {
+    return [{ tag: "div[data-text-box]" }];
+  },
+  renderHTML({ node, HTMLAttributes }) {
+    const { width, align } = node.attrs;
+    const marginStyle = align === "center" ? "margin-left:auto;margin-right:auto;" : align === "right" ? "margin-left:auto;" : "";
+    return [
+      "div",
+      mergeAttributes(HTMLAttributes, {
+        "data-text-box": "true",
+        "data-width": width,
+        "data-align": align,
+        class: "doc-text-box",
+        style: `width:${width}px;max-width:100%;border:1px solid #5b6472;padding:8px 10px;${marginStyle}`,
+      }),
+      0,
+    ];
+  },
+  addCommands() {
+    return {
+      insertTextBox:
+        (attrs = {}) =>
+        ({ commands }) =>
+          commands.insertContent({ type: this.name, attrs, content: [{ type: "paragraph", content: [{ type: "text", text: "Type text here" }] }] }),
+    };
+  },
+});
+
+// Insert → Bookmark: a named, invisible anchor (shown as a marker when
+// formatting marks are on). Cross-references point at it by name.
+export const Bookmark = Node.create({
+  name: "bookmark",
+  group: "inline",
+  inline: true,
+  atom: true,
+  addAttributes() {
+    return { name: { default: "" } };
+  },
+  parseHTML() {
+    return [{ tag: "a[data-bookmark]", getAttrs: (el) => ({ name: el.getAttribute("data-bookmark") || el.getAttribute("id") || "" }) }];
+  },
+  renderHTML({ node }) {
+    return ["a", { id: node.attrs.name, "data-bookmark": node.attrs.name, class: "doc-bookmark", title: `Bookmark: ${node.attrs.name}` }];
+  },
+  addCommands() {
+    return {
+      insertBookmark:
+        (name) =>
+        ({ commands }) =>
+          commands.insertContent({ type: this.name, attrs: { name } }),
     };
   },
 });
@@ -230,10 +400,21 @@ export const FootnoteRef = Node.create({
     };
   },
   parseHTML() {
-    return [{ tag: "sup[data-note-id]" }];
+    // Above Superscript's plain <sup> rule, which would otherwise win.
+    return [
+      {
+        tag: "sup[data-note-id]",
+        priority: 60,
+        getAttrs: (el) => ({
+          noteId: el.getAttribute("data-note-id"),
+          kind: el.getAttribute("data-kind") || el.getAttribute("kind") || "footnote",
+          text: el.getAttribute("data-note-text") || el.getAttribute("text") || "",
+        }),
+      },
+    ];
   },
   renderHTML({ node }) {
-    return ["sup", { "data-note-id": node.attrs.noteId, "data-kind": node.attrs.kind, class: "doc-footnote-ref" }, "*"];
+    return ["sup", { "data-note-id": node.attrs.noteId, "data-kind": node.attrs.kind, "data-note-text": node.attrs.text || "", class: "doc-footnote-ref" }, "*"];
   },
   addCommands() {
     return {
@@ -264,10 +445,14 @@ export const ReferenceField = Node.create({
     };
   },
   parseHTML() {
-    return [{ tag: "span[data-ref-type]" }];
+    return [{ tag: "span[data-ref-type]" }, { tag: "a[data-ref-type]" }];
   },
   renderHTML({ node }) {
-    return ["span", { "data-ref-type": node.attrs.refType, "data-ref-target": node.attrs.target, class: "doc-reference" }, node.attrs.label || "[reference]"];
+    const attrs = { "data-ref-type": node.attrs.refType, "data-ref-target": node.attrs.target, class: "doc-reference" };
+    // Bookmark references are real internal links, so they stay clickable
+    // in the exported Word file.
+    if (node.attrs.refType === "bookmark") return ["a", { ...attrs, href: `#${node.attrs.target}` }, node.attrs.label || "[reference]"];
+    return ["span", attrs, node.attrs.label || "[reference]"];
   },
   addCommands() {
     return {
@@ -279,15 +464,23 @@ export const ReferenceField = Node.create({
   },
 });
 
-export function buildExtensions() {
-  return [
+// `live: true` adds what only the on-screen editor needs: page frames
+// (tiptap-pagination-plus) and the Track Changes plugin. Schema-only uses
+// (generateJSON/generateHTML for import, export, clause insertion) leave
+// them out — the document model is identical either way.
+export function buildExtensions({ live = false, author = "", pagination = {} } = {}) {
+  const extensions = [
     StarterKit.configure({
       paragraph: false,
       heading: false,
+      bulletList: false,
+      orderedList: false,
       link: { openOnClick: false, autolink: true, HTMLAttributes: { class: "doc-link" } },
     }),
     LegalParagraph,
     LegalHeading,
+    StyledBulletList,
+    StyledOrderedList,
     TextStyle,
     FontFamily,
     FontSize,
@@ -305,8 +498,29 @@ export function buildExtensions() {
     PageBreak,
     FootnoteRef,
     ReferenceField,
-    PaginationExtension,
+    TextBox,
+    Bookmark,
+    InsertionMark,
+    DeletionMark,
+    Image.configure({ inline: true, allowBase64: true, resize: { enabled: true, alwaysPreserveAspectRatio: true, minWidth: 24, minHeight: 24 } }),
+    Mathematics.configure({ katexOptions: { throwOnError: false } }),
   ];
+  if (live) {
+    extensions.push(
+      TrackChanges.configure({ author }),
+      PaginationPlus.configure({
+        pageGap: PAGE_GAP,
+        pageBreakBackground: CANVAS_COLOR,
+        pageGapBorderSize: 0,
+        pageGapBorderColor: CANVAS_COLOR,
+        contentMarginTop: 12,
+        contentMarginBottom: 12,
+        footerRight: "",
+        ...pagination,
+      })
+    );
+  }
+  return extensions;
 }
 
 export const editorExtensions = buildExtensions();
@@ -315,11 +529,12 @@ export const editorExtensions = buildExtensions();
 // search, and the diff engine (which compares real text, not raw HTML).
 export function jsonToText(node) {
   if (!node) return "";
-  if (node.type === "text") return node.text || "";
+  if (node.type === "text") return node.marks?.some((m) => m.type === "deletion") ? "" : node.text || "";
+  if (node.type === "inlineMath" || node.type === "blockMath") return node.attrs?.latex || "";
   if (node.type === "footnoteRef") return "";
   if (node.type === "referenceField") return node.attrs?.label || "";
   const childText = (node.content || []).map(jsonToText).join("");
-  const BLOCK_TYPES = ["paragraph", "legalParagraph", "heading", "legalHeading", "tableCell", "tableHeader", "listItem", "blockquote"];
+  const BLOCK_TYPES = ["paragraph", "legalParagraph", "heading", "legalHeading", "tableCell", "tableHeader", "listItem", "blockquote", "blockMath"];
   return BLOCK_TYPES.includes(node.type) ? `${childText}\n` : childText;
 }
 

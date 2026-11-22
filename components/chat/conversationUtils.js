@@ -1,14 +1,13 @@
 // Pure helpers that assemble ONE unified conversation list for the sidebar
-// out of four different sources — seeded/created Groups and Direct chats
-// live in ChatContext state, while Case Discussion Rooms and Client Chats
-// are derived on the fly from data/cases.js (via clientDirectory.js) so
-// there's exactly one record of "this case/client exists" anywhere.
-import { CURRENT_USER } from "@/data/team";
+// out of four different sources — real Groups and Direct chats live in
+// ChatContext state, while Case Discussion Rooms and Client Chats are
+// derived on the fly from matters (via clientDirectory.js) so there's
+// exactly one record of "this case/client exists" anywhere.
 import { buildClientDirectory } from "@/components/cases/clientDirectory";
 import { caseConversationId, clientConversationId } from "./ChatContext";
 import { canAccessCaseRoom } from "./permissions";
 
-export function buildConversations({ cases, tasks, groups, directConversations, clientChatAssignments }) {
+export function buildConversations({ cases, tasks, groups, directConversations, clientChatAssignments, currentUser }) {
   const list = [];
 
   groups.forEach((g) => {
@@ -16,7 +15,7 @@ export function buildConversations({ cases, tasks, groups, directConversations, 
   });
 
   directConversations.forEach((d) => {
-    const other = d.memberNames.find((n) => n !== CURRENT_USER.name) || d.memberNames[0];
+    const other = d.memberNames.find((n) => n !== currentUser?.name) || d.memberNames[0];
     list.push({ id: d.id, kind: "direct", title: other, memberNames: d.memberNames, otherName: other });
   });
 
@@ -34,7 +33,7 @@ export function buildConversations({ cases, tasks, groups, directConversations, 
   });
 
   cases.forEach((c) => {
-    if (!canAccessCaseRoom(c, tasks)) return;
+    if (!canAccessCaseRoom(c, tasks, currentUser)) return;
     list.push({
       id: caseConversationId(c.no),
       kind: "case",
@@ -58,13 +57,10 @@ export function lastMessageFor(conversationId, messages) {
   return list.length ? list[list.length - 1] : null;
 }
 
-export function unreadCountFor(conversationId, messages, readState) {
+export function unreadCountFor(conversationId, messages, readState, currentUser) {
   const lastRead = readState[conversationId];
   return messages.filter(
-    (m) =>
-      m.conversationId === conversationId &&
-      m.senderName !== CURRENT_USER.name &&
-      (!lastRead || m.createdAt > lastRead)
+    (m) => m.conversationId === conversationId && m.senderName !== currentUser?.name && (!lastRead || m.createdAt > lastRead)
   ).length;
 }
 

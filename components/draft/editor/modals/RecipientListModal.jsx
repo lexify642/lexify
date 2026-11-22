@@ -1,13 +1,17 @@
 "use client";
 
-import { TEAM_MEMBERS, CURRENT_USER } from "@/data/team";
 import { useCases } from "@/components/cases/CasesContext";
 import { buildClientDirectory } from "@/components/cases/clientDirectory";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
+import { useStaffDirectory } from "@/components/staff/StaffDirectoryContext";
+import { ROLE_LABELS } from "@/lib/roles";
 
 export default function RecipientListModal({ onClose }) {
   const { cases } = useCases();
+  const currentUser = useCurrentUser();
+  const { staff } = useStaffDirectory();
   const clients = buildClientDirectory(cases);
-  const team = TEAM_MEMBERS.filter((m) => m.name !== CURRENT_USER.name);
+  const team = staff.filter((p) => p.full_name !== currentUser.name).map((p) => ({ id: p.id, name: p.full_name, role: p.role }));
 
   return (
     <div className="case-modal-backdrop show" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -40,7 +44,7 @@ export default function RecipientListModal({ onClose }) {
                 {team.map((m) => (
                   <tr key={m.id}>
                     <td>{m.name}</td>
-                    <td>{m.role}</td>
+                    <td>{ROLE_LABELS[m.role] || m.role}</td>
                   </tr>
                 ))}
               </tbody>

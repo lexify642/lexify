@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CURRENT_USER } from "@/data/team";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
 import { canManageChat } from "./permissions";
 import { useAttachments } from "./AttachmentsContext";
 import AttachmentPreviewModal from "./AttachmentPreviewModal";
@@ -13,6 +13,7 @@ import ShareAttachmentModal from "./ShareAttachmentModal";
 // components/chat/AttachmentsContext.jsx); nothing here ever copies the file.
 export default function AttachFileMenu({ attachment, conversations, onClose }) {
   const { deleteAttachment } = useAttachments();
+  const currentUser = useCurrentUser();
   const ref = useRef(null);
   const [preview, setPreview] = useState(false);
   const [linkMode, setLinkMode] = useState(null);
@@ -29,7 +30,7 @@ export default function AttachFileMenu({ attachment, conversations, onClose }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showDropdown, onClose]);
 
-  const canDelete = canManageChat() || attachment.uploadedBy === CURRENT_USER.name;
+  const canDelete = canManageChat(currentUser) || attachment.uploadedBy === currentUser.name;
 
   function copyLink() {
     const url = `${window.location.origin}/documents?highlight=${attachment.id}`;

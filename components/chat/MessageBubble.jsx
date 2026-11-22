@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CURRENT_USER } from "@/data/team";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
 import { useAttachments } from "./AttachmentsContext";
 import { canDeleteMessage } from "./permissions";
 import { formatFileSize } from "@/data/attachments";
@@ -88,13 +88,14 @@ export default function MessageBubble({
   onContextMenu,
 }) {
   const { attachments } = useAttachments();
+  const currentUser = useCurrentUser();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(message.text);
 
-  const isOwn = message.senderName === CURRENT_USER.name;
-  const isPinned = message.pinnedBy.includes(CURRENT_USER.name);
-  const isStarred = message.starredBy.includes(CURRENT_USER.name);
-  const canDelete = canDeleteMessage(message);
+  const isOwn = message.senderName === currentUser.name;
+  const isPinned = message.pinnedBy.includes(currentUser.name);
+  const isStarred = message.starredBy.includes(currentUser.name);
+  const canDelete = canDeleteMessage(message, currentUser);
   const msgAttachments = message.attachmentIds.map((id) => attachments.find((a) => a.id === id)).filter(Boolean);
 
   function submitEdit() {

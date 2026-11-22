@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { WORKSPACE_ITEMS, NAV_GROUPS, SYSTEM_ITEMS, activeKeyForPath } from "./navItems";
+import { WORKSPACE_ITEMS, NAV_GROUPS, activeKeyForPath } from "./navItems";
 import { LOGO_URL } from "@/lib/brand";
 
 // Desktop/tablet only — on mobile this is hidden entirely (see the
@@ -85,17 +85,6 @@ export default function Sidebar() {
               </li>
             );
           })}
-        </ul>
-        <div className="nav-label">SYSTEM</div>
-        <ul className="nav-list">
-          {SYSTEM_ITEMS.map((item) => (
-            <li key={item.key}>
-              <Link className={item.key === activeKey ? "active" : ""} href={item.href}>
-                <span className="nav-icon">{item.icon}</span>
-                <span>{item.label}</span>
-              </Link>
-            </li>
-          ))}
         </ul>
       </div>
     </aside>

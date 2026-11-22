@@ -4,10 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MOBILE_PILL_ITEMS, activeKeyForPath } from "./navItems";
 import { LOGO_URL } from "@/lib/brand";
+import { useCurrentUser, useSignOut } from "@/components/auth/AuthProvider";
 
 export default function Topbar({ leftSlot, children }) {
   const pathname = usePathname();
   const activeKey = activeKeyForPath(pathname);
+  const currentUser = useCurrentUser();
+  const signOut = useSignOut();
 
   return (
     <>
@@ -19,12 +22,10 @@ export default function Topbar({ leftSlot, children }) {
         {leftSlot}
         <div className="top-actions">
           {children}
-          <Link href="/admin" className="topbar-icon-btn" aria-label="Admin settings">
-            ⚙
-          </Link>
-          <Link href="/login" className="btn btn-outline topbar-login-btn">
-            Login
-          </Link>
+          <span className="topbar-user-name">{currentUser.name}</span>
+          <button type="button" className="btn btn-outline topbar-login-btn" onClick={signOut}>
+            Logout
+          </button>
         </div>
       </header>
       <nav className="topbar-pills" aria-label="More">

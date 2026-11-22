@@ -1,6 +1,7 @@
 import { jsonError, jsonErrorFromException, jsonOk } from "@/lib/api-response";
 import { createAndSendOtp } from "@/lib/auth/otp";
 import { emailSchema } from "@/lib/validation";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request) {
   const body = await request.json().catch(() => null);
@@ -9,8 +10,21 @@ export async function POST(request) {
     return jsonError("Enter a valid email address.", 400, parsed.error.flatten());
   }
 
+  const { email } = parsed.data;
+
   try {
-    await createAndSendOtp(parsed.data.email);
+    // No public self-registration: only send a code to an email an admin
+    // has already added under Admin → Users. The message is intentionally
+    // the same shape as other login errors rather than a distinct
+    // "unknown email" response, so this endpoint doesn't become a way to
+    // enumerate which emails are registered with the firm.
+    const admin = createSupabaseAdminClient();
+    const { data: profile } = await admin.from("profiles").select("is_active").eq("email", email).maybeSingle();
+    if (!profile || !profile.is_active) {
+      return jsonError("This email isn't registered with your firm. Ask your administrator to add you.", 403);
+    }
+
+    await createAndSendOtp(email);
     return jsonOk({ sent: true });
   } catch (err) {
     console.error("[api/auth/send-otp]", err);

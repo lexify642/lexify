@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useChat } from "./ChatContext";
 import { useAttachments } from "./AttachmentsContext";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
 import { lastMessageFor, messagesFor } from "./conversationUtils";
 import { canReassignClientChat } from "./permissions";
 import MessageBubble from "./MessageBubble";
@@ -39,6 +40,7 @@ function headerSubtitle(conversation, online, typingBy, lastReplyName) {
 export default function ConversationView({ conversation, allConversations, onBack, rightPanelOpen, onToggleRightPanel }) {
   const { messages, typingBy, online, markRead, togglePin, toggleStar, editMessage, deleteMessage, forwardMessage } = useChat();
   const { addAttachment, deleteAttachment } = useAttachments();
+  const currentUser = useCurrentUser();
   const [replyTo, setReplyTo] = useState(null);
   const [forwardTarget, setForwardTarget] = useState(null);
   const [pendingIds, setPendingIds] = useState([]);
@@ -57,8 +59,17 @@ export default function ConversationView({ conversation, allConversations, onBac
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversation.id]);
 
-  function addFiles(fileList) {
-    const ids = Array.from(fileList).map((file) => addAttachment(file, { sourceConversationId: conversation.id }).id);
+  async function addFiles(fileList) {
+    const files = Array.from(fileList);
+    const created = await Promise.all(
+      files.map((file) =>
+        addAttachment(file, { sourceConversationId: conversation.id }).catch((err) => {
+          console.error("[ConversationView] attachment upload failed", err);
+          return null;
+        })
+      )
+    );
+    const ids = created.filter(Boolean).map((a) => a.id);
     setPendingIds((prev) => [...prev, ...ids]);
   }
 
@@ -104,7 +115,7 @@ export default function ConversationView({ conversation, allConversations, onBac
         </div>
         {conversation.kind === "client" && (
           <div className="chat-header-actions">
-            {canReassignClientChat() && (
+            {canReassignClientChat(currentUser) && (
               <button type="button" className="btn btn-outline" onClick={() => setReassigning(true)}>
                 Reassign
               </button>

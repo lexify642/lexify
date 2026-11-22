@@ -1,4 +1,3 @@
-import { TEAM_MEMBERS } from "@/data/team";
 import { dueCategory } from "@/data/tasks";
 import { TODAY } from "@/data/cases";
 
@@ -17,8 +16,8 @@ function workloadLevel(pendingTasks, hearingsToday) {
   return "Low";
 }
 
-export function computeAdvocateWorkload({ tasks = [], cases = [] }) {
-  return TEAM_MEMBERS.map((member) => {
+export function computeAdvocateWorkload({ tasks = [], cases = [], members = [] }) {
+  return members.map((member) => {
     const memberTasks = tasks.filter((t) => t.assignedToName === member.name);
     const pendingTasks = memberTasks.filter((t) => t.status !== "Completed" && t.status !== "Cancelled");
     const assignedCases = new Set(memberTasks.map((t) => t.caseNo).filter(Boolean));

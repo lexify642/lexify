@@ -1,16 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { CURRENT_USER, TEAM_MEMBERS } from "@/data/team";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
+import { useStaffDirectory } from "@/components/staff/StaffDirectoryContext";
+import { ROLE_LABELS } from "@/lib/roles";
 import { useChat } from "./ChatContext";
 
 export default function NewChatModal({ onClose, onCreated }) {
   const { startDirectChat, createGroup } = useChat();
+  const currentUser = useCurrentUser();
+  const { staff } = useStaffDirectory();
   const [tab, setTab] = useState("direct");
   const [groupName, setGroupName] = useState("");
   const [selected, setSelected] = useState([]);
 
-  const candidates = TEAM_MEMBERS.filter((m) => m.name !== CURRENT_USER.name);
+  const candidates = staff
+    .filter((p) => p.full_name !== currentUser.name)
+    .map((p) => ({ id: p.id, name: p.full_name, role: ROLE_LABELS[p.role] || p.role }));
 
   function toggleMember(name) {
     setSelected((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]));
@@ -21,9 +27,9 @@ export default function NewChatModal({ onClose, onCreated }) {
     onCreated(id);
   }
 
-  function handleCreateGroup() {
+  async function handleCreateGroup() {
     if (!groupName.trim() || selected.length === 0) return;
-    const entry = createGroup(groupName.trim(), selected);
+    const entry = await createGroup(groupName.trim(), selected);
     onCreated(entry.id);
   }
 

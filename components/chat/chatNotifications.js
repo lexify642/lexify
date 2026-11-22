@@ -1,21 +1,20 @@
-import { CURRENT_USER } from "@/data/team";
 import { lastMessageFor } from "./conversationUtils";
 
 // Same "recomputed fresh from live state every render" pattern as
 // components/tasks/NotificationBell.jsx's buildNotifications — no
 // append-only event log exists, so these are derived directly from the
 // Chat/Attachments/Appointments stores rather than tracked separately.
-export function buildChatNotifications({ messages, conversations, attachments, appointments }) {
+export function buildChatNotifications({ messages, conversations, attachments, appointments, currentUser }) {
   const items = [];
   const myConversations = conversations.filter((c) => {
-    if (c.kind === "direct" || c.kind === "group") return (c.memberNames || []).includes(CURRENT_USER.name);
+    if (c.kind === "direct" || c.kind === "group") return (c.memberNames || []).includes(currentUser?.name);
     return true; // client/case rooms are already access-filtered by buildConversations
   });
   const myConversationIds = new Set(myConversations.map((c) => c.id));
 
   myConversations.forEach((c) => {
     const last = lastMessageFor(c.id, messages);
-    if (last && last.senderName !== CURRENT_USER.name && !last.deleted) {
+    if (last && last.senderName !== currentUser?.name && !last.deleted) {
       items.push({
         id: `chat-msg-${last.id}`,
         type: "message",
@@ -27,7 +26,7 @@ export function buildChatNotifications({ messages, conversations, attachments, a
   });
 
   messages
-    .filter((m) => myConversationIds.has(m.conversationId) && m.mentions?.includes(CURRENT_USER.name) && m.senderName !== CURRENT_USER.name)
+    .filter((m) => myConversationIds.has(m.conversationId) && m.mentions?.includes(currentUser?.name) && m.senderName !== currentUser?.name)
     .forEach((m) => {
       const conv = conversations.find((c) => c.id === m.conversationId);
       items.push({
@@ -40,7 +39,7 @@ export function buildChatNotifications({ messages, conversations, attachments, a
     });
 
   attachments
-    .filter((a) => a.uploadedBy !== CURRENT_USER.name)
+    .filter((a) => a.uploadedBy !== currentUser?.name)
     .forEach((a) => {
       items.push({
         id: `chat-doc-${a.id}`,
@@ -64,7 +63,7 @@ export function buildChatNotifications({ messages, conversations, attachments, a
     });
 
   (appointments || [])
-    .filter((a) => a.assignedToName === CURRENT_USER.name)
+    .filter((a) => a.assignedToName === currentUser?.name)
     .forEach((a) => {
       items.push({
         id: `appt-${a.id}`,

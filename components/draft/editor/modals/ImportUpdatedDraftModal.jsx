@@ -5,14 +5,13 @@ import { generateJSON } from "@tiptap/html";
 import { useDrafts } from "../../DraftsContext";
 import { useDraftReview } from "../../DraftReviewContext";
 import { editorExtensions, plainTextToDoc } from "../extensions";
+import { docxToContent } from "../docxImport";
 
 // The real "Updated Draft Received by Email" flow (per the user's confirmed
 // decision — no inbound-email/webhook infra exists in this environment, so
 // this is a genuine file-upload/paste action instead of automatic email
-// ingestion). A .docx binary can't be reliably parsed without a library this
-// app doesn't have installed, so this honestly supports .html/.htm (the
-// same format this app's own "Export Word" produces) and .txt/pasted text —
-// it never claims to parse a real .docx.
+// ingestion). Accepts a Word .docx (read with mammoth, see docxImport.js),
+// .html/.htm (the older Word-compatible export), .txt, or pasted text.
 export default function ImportUpdatedDraftModal({ draft, onClose }) {
   const { saveVersion } = useDrafts();
   const { reviewRequests, recordImportedVersion } = useDraftReview();
@@ -24,6 +23,8 @@ export default function ImportUpdatedDraftModal({ draft, onClose }) {
   const [pastedText, setPastedText] = useState("");
   const [fileName, setFileName] = useState("");
   const [fileContent, setFileContent] = useState("");
+  const [docxFile, setDocxFile] = useState(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
 
@@ -32,20 +33,37 @@ export default function ImportUpdatedDraftModal({ draft, onClose }) {
     if (!file) return;
     const isHtml = /\.html?$/i.test(file.name);
     const isTxt = /\.txt$/i.test(file.name);
-    if (!isHtml && !isTxt) {
-      setError("Only .html, .htm, or .txt files can be imported directly. For a .docx file, save it as HTML from Word first, or paste its text instead.");
+    const isDocx = /\.docx$/i.test(file.name);
+    if (!isHtml && !isTxt && !isDocx) {
+      setError("Choose a Word (.docx), .html, .htm or .txt file, or paste the text instead.");
       return;
     }
     setError("");
     setFileName(file.name);
+    if (isDocx) {
+      setDocxFile(file);
+      setFileContent("");
+      return;
+    }
+    setDocxFile(null);
     const reader = new FileReader();
     reader.onload = () => setFileContent(String(reader.result || ""));
     reader.readAsText(file);
   }
 
-  function handleImport() {
+  async function handleImport() {
     let contentJson;
-    if (mode === "file") {
+    if (mode === "file" && docxFile) {
+      setBusy(true);
+      try {
+        ({ contentJson } = await docxToContent(docxFile));
+      } catch {
+        setBusy(false);
+        setError("That file couldn't be read as a Word document.");
+        return;
+      }
+      setBusy(false);
+    } else if (mode === "file") {
       if (!fileContent) {
         setError("Choose a file to import.");
         return;
@@ -107,9 +125,9 @@ export default function ImportUpdatedDraftModal({ draft, onClose }) {
 
               {mode === "file" ? (
                 <label className="form-field full" style={{ display: "block" }}>
-                  File (.html, .htm, or .txt)
-                  <input type="file" accept=".html,.htm,.txt" onChange={handleFileChange} />
-                  {fileName && <small>{fileName} loaded ({fileContent.length.toLocaleString()} characters)</small>}
+                  File (.docx, .html, .htm, or .txt)
+                  <input type="file" accept=".docx,.html,.htm,.txt" onChange={handleFileChange} />
+                  {fileName && <small>{docxFile ? `${fileName} ready to import` : `${fileName} loaded (${fileContent.length.toLocaleString()} characters)`}</small>}
                 </label>
               ) : (
                 <label className="form-field full" style={{ display: "block" }}>
@@ -127,8 +145,8 @@ export default function ImportUpdatedDraftModal({ draft, onClose }) {
             <button type="button" className="btn btn-outline" onClick={onClose}>
               Cancel
             </button>
-            <button type="button" className="btn" onClick={handleImport}>
-              Import as New Version
+            <button type="button" className="btn" onClick={handleImport} disabled={busy}>
+              {busy ? "Importing…" : "Import as New Version"}
             </button>
           </div>
         )}

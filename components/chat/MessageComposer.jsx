@@ -1,7 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { CURRENT_USER, TEAM_MEMBERS } from "@/data/team";
+import { useCurrentUser } from "@/components/auth/AuthProvider";
+import { useStaffDirectory } from "@/components/staff/StaffDirectoryContext";
+import { ROLE_LABELS } from "@/lib/roles";
 import { useChat } from "./ChatContext";
 import { useAttachments } from "./AttachmentsContext";
 import { formatFileSize } from "@/data/attachments";
@@ -11,6 +13,9 @@ import MediaCaptureModal from "./MediaCaptureModal";
 export default function MessageComposer({ conversationId, replyTo, onCancelReply, pendingIds, addFiles, removePending, clearPending }) {
   const { sendMessage } = useChat();
   const { attachments } = useAttachments();
+  const currentUser = useCurrentUser();
+  const { staff } = useStaffDirectory();
+  const teamMembers = staff.map((p) => ({ id: p.id, name: p.full_name, role: p.role }));
   const [text, setText] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -51,7 +56,7 @@ export default function MessageComposer({ conversationId, replyTo, onCancelReply
 
   function handleSend() {
     if (!text.trim() && pendingIds.length === 0) return;
-    const mentions = TEAM_MEMBERS.filter((m) => text.includes(`@${m.name}`)).map((m) => m.name);
+    const mentions = teamMembers.filter((m) => text.includes(`@${m.name}`)).map((m) => m.name);
     sendMessage(conversationId, {
       text: text.trim(),
       attachmentIds: pendingIds,
@@ -64,7 +69,7 @@ export default function MessageComposer({ conversationId, replyTo, onCancelReply
   }
 
   function shareContact() {
-    sendMessage(conversationId, { text: `📇 Contact: ${CURRENT_USER.name} — ${CURRENT_USER.role}` });
+    sendMessage(conversationId, { text: `📇 Contact: ${currentUser.name} — ${ROLE_LABELS[currentUser.role] || currentUser.role}` });
     setShowAttachMenu(false);
   }
 
@@ -74,7 +79,7 @@ export default function MessageComposer({ conversationId, replyTo, onCancelReply
   }
 
   const mentionMatches =
-    mentionQuery !== null ? TEAM_MEMBERS.filter((m) => m.name.toLowerCase().includes(mentionQuery.toLowerCase())) : [];
+    mentionQuery !== null ? teamMembers.filter((m) => m.name.toLowerCase().includes(mentionQuery.toLowerCase())) : [];
 
   return (
     <div className="chat-composer">
@@ -164,7 +169,7 @@ export default function MessageComposer({ conversationId, replyTo, onCancelReply
             <div className="mention-dropdown">
               {mentionMatches.map((m) => (
                 <button type="button" key={m.id} onClick={() => insertMention(m.name)}>
-                  {m.name} <small>{m.role}</small>
+                  {m.name} <small>{ROLE_LABELS[m.role] || m.role}</small>
                 </button>
               ))}
             </div>
