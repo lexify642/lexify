@@ -115,7 +115,9 @@ export function paginationOptionsFor(draft) {
 // with page frames, so pagination is switched off while columns > 1 (the
 // same trade-off the previous editor made).
 export function applyPageSetup(editor, draft) {
-  if (!editor || editor.isDestroyed) return;
+  // The pagination extension measures the page DOM while handling these
+  // commands, so they can only run once the editor is on the page.
+  if (!editorDom(editor)) return;
   const o = paginationOptionsFor(draft);
   const storage = editor.storage.PaginationPlus;
   // "Different first page" blanks page 1's running head/foot; reset each
@@ -136,6 +138,17 @@ export function applyPageSetup(editor, draft) {
   if (o.enabled) chain.enablePagination();
   else chain.disablePagination();
   chain.run();
+}
+
+// The editor's page element, or null while the editor isn't attached to
+// the page yet (TipTap v3 throws on editor.view.dom until it is).
+export function editorDom(editor) {
+  if (!editor || editor.isDestroyed) return null;
+  try {
+    return editor.view.dom || null;
+  } catch {
+    return null;
+  }
 }
 
 // The page-gap elements the extension draws between pages, top to bottom.

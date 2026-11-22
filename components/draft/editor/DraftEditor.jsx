@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useEditor, EditorContent, useEditorState } from "@tiptap/react";
 import "katex/dist/katex.min.css";
 import { buildExtensions } from "./extensions";
-import { applyPageSetup, marginsFor, pageAtY, pageMetricsFor, paginationOptionsFor, renderedPageCount, syncPageBreakSpacers } from "./pagination";
+import { applyPageSetup, editorDom, marginsFor, pageAtY, pageMetricsFor, paginationOptionsFor, renderedPageCount, syncPageBreakSpacers } from "./pagination";
 import { useDrafts } from "../DraftsContext";
 import { useCurrentUser } from "@/components/auth/AuthProvider";
 import RibbonTabs from "./ribbon/RibbonTabs";
@@ -89,13 +89,29 @@ export default function DraftEditor({ draft, onSaveStateChange, onSaveNow, onPri
       selector: ({ editor: ed }) => (ed ? countWords(ed.getText()) : 0),
     }) || 0;
 
+  // TipTap v3 (immediatelyRender: false) creates the editor first and only
+  // attaches it to the page once <EditorContent> mounts; until then
+  // editor.view.dom throws. Anything that touches the page DOM — including
+  // the pagination extension, which measures it on every transaction —
+  // waits for this.
+  const [mountedEditor, setMountedEditor] = useState(null);
+  const isMounted = !!editor && mountedEditor === editor;
+  useEffect(() => {
+    if (!editor) return undefined;
+    const markMounted = () => setMountedEditor(editor);
+    editor.on("mount", markMounted);
+    // Already attached before this effect subscribed.
+    if (editorDom(editor)) queueMicrotask(markMounted);
+    return () => editor.off("mount", markMounted);
+  }, [editor]);
+
   // After any change: re-size manual page breaks and refresh page X of Y.
   // Runs a frame later so the pagination extension has redrawn first.
   const refreshLayout = useCallback(() => {
     if (layoutFrameRef.current) cancelAnimationFrame(layoutFrameRef.current);
     layoutFrameRef.current = requestAnimationFrame(() => {
-      if (!editor || editor.isDestroyed) return;
-      const root = editor.view.dom;
+      const root = editorDom(editor);
+      if (!root) return;
       syncPageBreakSpacers(root);
       const total = renderedPageCount(root);
       let current = 1;
@@ -128,29 +144,29 @@ export default function DraftEditor({ draft, onSaveStateChange, onSaveNow, onPri
   }, [editor]);
 
   useEffect(() => {
-    if (!editor || editor.isDestroyed) return;
+    if (!isMounted || editor.isDestroyed) return;
     if (activeVersion.id === lastSyncedVersionId.current) return;
     editor.commands.setContent(activeVersion.contentJson, { emitUpdate: false });
     lastSyncedVersionId.current = activeVersion.id;
     onSaveStateChange?.("saved");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeVersion.id]);
+  }, [isMounted, activeVersion.id]);
 
   // Page size, orientation, margins, columns, header/footer, page numbers.
   useEffect(() => {
-    if (!editor) return;
+    if (!isMounted) return;
     applyPageSetup(editor, draft);
     refreshLayout();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, JSON.stringify(draft.layout), draft.headerHtml, draft.footerHtml, draft.design.fontPairing, draft.design.spacing]);
+  }, [isMounted, JSON.stringify(draft.layout), draft.headerHtml, draft.footerHtml, draft.design.fontPairing, draft.design.spacing]);
 
   useEffect(() => {
-    if (editor && !editor.isDestroyed) editor.setEditable(editable);
-  }, [editor, editable]);
+    if (isMounted && !editor.isDestroyed) editor.setEditable(editable);
+  }, [editor, isMounted, editable]);
 
   useEffect(() => {
-    if (editor && !editor.isDestroyed) editor.view.dom.setAttribute("spellcheck", spellcheck ? "true" : "false");
-  }, [editor, spellcheck]);
+    editorDom(editor)?.setAttribute("spellcheck", spellcheck ? "true" : "false");
+  }, [editor, isMounted, spellcheck]);
 
   function setTrackChanges(on) {
     setTrackChangesState(on);
@@ -292,8 +308,10 @@ export default function DraftEditor({ draft, onSaveStateChange, onSaveNow, onPri
             event.preventDefault();
             const target = refEl.dataset.refTarget?.trim();
             let match = null;
-            if (refEl.dataset.refType === "bookmark") match = editor.view.dom.querySelector(`[data-bookmark="${CSS.escape(target || "")}"]`);
-            else match = Array.from(editor.view.dom.querySelectorAll("h1, h2, h3, h4, h5, h6")).find((el) => el.textContent.trim() === target);
+            const root = editorDom(editor);
+            if (!root) return;
+            if (refEl.dataset.refType === "bookmark") match = root.querySelector(`[data-bookmark="${CSS.escape(target || "")}"]`);
+            else match = Array.from(root.querySelectorAll("h1, h2, h3, h4, h5, h6")).find((el) => el.textContent.trim() === target);
             match?.scrollIntoView({ behavior: "smooth", block: "center" });
           }}
         >
